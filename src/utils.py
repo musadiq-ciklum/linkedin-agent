@@ -2,10 +2,20 @@ import re
 
 def clean_text(text: str) -> str:
     """
-    Basic text cleanup before chunking.
-    Removes extra whitespace, line breaks, repeated spaces, tabs.
+    Cleans text but preserves structure.
+    - Keeps line breaks
+    - Removes excessive spaces
+    - Normalizes internal whitespace
     """
-    text = text.strip()
-    text = re.sub(r"\s+", " ", text)
-    text = re.sub(r"[\r\n\t]+", " ", text)
-    return text
+
+    # Normalize CRLF to LF
+    text = text.replace("\r\n", "\n").replace("\r", "\n")
+
+    # Remove trailing spaces per line
+    text = "\n".join(line.strip() for line in text.split("\n"))
+
+    # Collapse multiple blank lines to max 1
+    text = re.sub(r"\n\s*\n+", "\n\n", text)
+
+    # Preserve headings / spacing — DO NOT flatten whitespace globally!
+    return text.strip()
