@@ -5,3 +5,15 @@ venv/
 # Byte-compiled Python files
 __pycache__/
 *.pyc
+
+.idea
+
+# Data folders (ignore files, keep folders)
+data/raw/*
+data/cleaned/*
+data/chunks/*
+
+# Except .gitkeep files
+!data/raw/.gitkeep
+!data/cleaned/.gitkeep
+!data/chunks/.gitkeep
