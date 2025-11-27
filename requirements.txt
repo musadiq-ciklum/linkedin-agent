@@ -3,3 +3,5 @@ google-generativeai
 python-docx
 pypdf
 pytest
+chromadb
+sentence-transformers

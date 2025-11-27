@@ -27,9 +27,9 @@ cd linkedin-agent
 Windows
 ```bash
 python -m venv venv
-venv\Scripts\activate
+.\.venv\Scripts\Activate.ps1
 ```
-Windows
+Ubuntu
 ```bash
 python3 -m venv venv
 source venv/bin/activate
