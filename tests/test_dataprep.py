@@ -1,16 +1,22 @@
-# import sys
-# import os
-
-# Fix import path BEFORE importing project modules
-# sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+import pytest
 from pathlib import Path
 from src.data_prep.pipeline import prepare_data
 from src.data_prep.saver import save_chunks
 
-input_path = Path(__file__).resolve().parents[1] / "data" / "raw" / "sample.txt" #"data/raw/sample.txt"
-output_path = "data/chunks/sample.json"
+@pytest.fixture
+def prepared_chunks():
+    input_path = Path(__file__).resolve().parents[1] / "data" / "raw" / "sample.txt"
+    return prepare_data(input_path)
 
-chunks = prepare_data(input_path)
-save_chunks(chunks, output_path)
+def test_prepare_data_runs(prepared_chunks):
+    assert isinstance(prepared_chunks, list)
+    assert len(prepared_chunks) > 0
 
-print("Chunks saved to:", output_path)
+def test_save_chunks(prepared_chunks, tmp_path):
+    output_path = tmp_path / "sample.json"
+
+    save_chunks(prepared_chunks, output_path)
+
+    assert output_path.exists()
+    assert output_path.read_text() != ""
+
