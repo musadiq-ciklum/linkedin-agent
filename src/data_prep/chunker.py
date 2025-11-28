@@ -59,9 +59,28 @@ def chunk_by_sections(paragraphs: list[str], max_size: int = 600) -> list[str]:
     return chunks
 
 
-def chunk_text(text: str, chunk_size: int = 600) -> list[str]:
+def chunk_text(text: str, chunk_size: int = 600, overlap: int = 0) -> list[str]:
     """
-    Main entry: split → detect sections → chunk.
+    Main entry: section-aware chunking with optional overlap.
     """
     paragraphs = split_into_paragraphs(text)
-    return chunk_by_sections(paragraphs, max_size=chunk_size)
+    base_chunks = chunk_by_sections(paragraphs, max_size=chunk_size)
+
+    # If no overlap requested, return as-is
+    if overlap <= 0:
+        return base_chunks
+
+    # Build overlapping windows of chunks
+    overlapped = []
+    for i in range(len(base_chunks)):
+        chunk = base_chunks[i]
+
+        # Add overlap from previous chunk
+        if i > 0:
+            prev_tail = base_chunks[i - 1][-overlap:]
+            chunk = prev_tail + "\n" + chunk
+
+        overlapped.append(chunk)
+
+    return overlapped
+
