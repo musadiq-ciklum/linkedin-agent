@@ -34,6 +34,6 @@ def index_chunks(chunks_folder: str = "data/chunks", persist_dir="data/chroma"):
             })
 
     embeddings = model.embed_texts(all_texts)
-    store.add_documents(all_texts, embeddings, all_metadata)
+    store.add(all_texts, embeddings, all_metadata)
 
     print(f"Indexed {len(all_texts)} chunks into ChromaDB collection 'linkedin_chunks'")

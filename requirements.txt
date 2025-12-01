@@ -5,3 +5,4 @@ pypdf
 pytest
 chromadb
 sentence-transformers
+onnxruntime>=1.15.0
