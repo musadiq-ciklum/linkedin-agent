@@ -1,36 +1,48 @@
+# src/vectorstore/db_store.py
+
 import hashlib
 from chromadb import PersistentClient
-from chromadb.utils import embedding_functions
-
 from src.embedder.factory import create_embedder
+
+
+class ChromaEmbeddingWrapper:
+    """
+    Adapter for Chroma 0.4.16+ embedding function API.
+    Ensures the embedder receives full strings, not characters.
+    """
+
+    def __init__(self, embedder):
+        self._embedder = embedder
+
+    def __call__(self, input: list[str]) -> list[list[float]]:
+        if isinstance(input, str):
+            input = [input]
+
+        # embedder.embed() returns List[List[float]]
+        return self._embedder.embed(input)
+
+    def embed(self, input: list[str]):
+        return self.__call__(input)
+
+    def name(self):
+        return f"custom_{self._embedder.__class__.__name__}"
 
 
 class ChromaStore:
     """
-    A wrapper around ChromaDB that supports embedder switching.
-    Fully testable, no side effects, deterministic collection names.
+    A clean, correct wrapper around ChromaDB for storing documents
+    with a selected embedder.
     """
 
-    def __init__(self, persist_dir: str, embedder_name: str = "hf", embedder_override: str | None = None):
+    def __init__(self, persist_dir: str, embedder_name="hf", embedder_override=None):
         self.persist_dir = persist_dir
-
-        # Use override if provided
         self.embedder_name = embedder_override or embedder_name
-
-        # Load embedder (must support list[str] input)
         self.embedder = create_embedder(self.embedder_name)
 
-        # Init chroma client
         self.client = PersistentClient(path=persist_dir)
-
-        # Each embedder has its own collection namespace
         self.collection = self._get_or_create_collection()
 
-    def _collection_name(self) -> str:
-        """
-        Deterministically names the collection based on the embedder.
-        Example: linkedin_hf_abc123
-        """
+    def _collection_name(self):
         key = f"linkedin_{self.embedder_name}"
         hashed = hashlib.sha1(key.encode()).hexdigest()[:8]
         return f"{key}_{hashed}"
@@ -40,26 +52,21 @@ class ChromaStore:
         return self.client.get_or_create_collection(
             name=name,
             metadata={"hnsw:space": "cosine"},
+            embedding_function=ChromaEmbeddingWrapper(self.embedder),
         )
 
-    # -------------------------
-    # Public API
-    # -------------------------
+    # -------------------------------------------------------------
 
     def add(self, ids, documents, embeddings=None, metadatas=None):
-        """
-        Add documents to the Chroma collection.
-        If embeddings are provided, use them directly; otherwise, generate via embedder.
-        """
         if embeddings is None:
-            embeddings = self.embedder.embed(documents)
+            embeddings = self.embedder.embed(documents)  # Correct full-doc embedding
+
         self.collection.add(
             ids=ids,
             documents=documents,
             embeddings=embeddings,
             metadatas=metadatas,
         )
-
 
     def search(self, query_text: str, n_results: int = 5):
         query_vec = self.embedder.embed([query_text])[0]
@@ -69,6 +76,7 @@ class ChromaStore:
         )
 
     def reset(self):
-        """Drops the collection for testing."""
+        """Drops and recreates the collection."""
         name = self._collection_name()
         self.client.delete_collection(name)
+        self.collection = self._get_or_create_collection()
