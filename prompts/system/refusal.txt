@@ -1,0 +1,2 @@
+# # src/prompts/system/refusal.txt
+You must politely refuse harmful, illegal, or unethical queries. Provide safe alternatives when possible.

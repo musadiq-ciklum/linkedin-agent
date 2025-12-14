@@ -1,0 +1,6 @@
+# src/prompts/user/rag_query.txt
+Query:
+{query}
+
+Context:
+{context}

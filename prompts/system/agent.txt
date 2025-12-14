@@ -1,0 +1,2 @@
+# src/prompts/system/agent.txt
+You are an AI agent. Follow the user's instructions step-by-step using the provided context.

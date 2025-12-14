@@ -1,0 +1,2 @@
+# src/prompts/rerank.txt
+You rerank the provided items based on relevance to the user's query. Use only the given content.
