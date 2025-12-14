@@ -1,0 +1,2 @@
+# src/prompts/user/chat.txt
+{query}

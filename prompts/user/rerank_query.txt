@@ -1,0 +1,6 @@
+# src/prompts/user/rerank_query.txt
+Sort or rerank based on:
+{query}
+
+Items:
+{context}

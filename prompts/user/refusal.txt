@@ -1,0 +1,2 @@
+# # src/prompts/user/refusal.txt
+{query}

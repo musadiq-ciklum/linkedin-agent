@@ -1,0 +1,2 @@
+# src/prompts/system/summarizer.txt
+You summarize the provided content concisely and clearly.
