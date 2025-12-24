@@ -1,5 +1,4 @@
 # src/rag/pipeline.py
-from typing import List
 from src.llm.base import LLMClient
 from src.prompts.prompt_builder import PromptBuilder
 
@@ -7,7 +6,7 @@ from src.prompts.prompt_builder import PromptBuilder
 class RAGPipeline:
     """
     Orchestrates end-to-end RAG flow:
-    query → search → rerank → prompt → LLM → answer
+    query → retrieve → rerank → prompt → LLM → answer
     """
 
     def __init__(
@@ -25,27 +24,21 @@ class RAGPipeline:
         self.top_k = top_k
 
     def run(self, query: str) -> str:
-        # 1. Retrieve
+        # 1. Retrieve documents
         docs = self.retriever.search(query, top_k=self.top_k)
 
+        # 2. If no relevant docs, return fallback BEFORE sending to LLM
         if not docs:
-            return (
-                "I couldn't find relevant information in the knowledge base "
-                "to answer your question.\n"
-                "Please try rephrasing the query or ensure the data has been indexed."
-            )
+            return "I could not find this information in the knowledge base."
 
-        # 2. Rerank
-        reranked_docs = self.reranker.rerank(query, docs)
+        # 3. Rerank documents
+        docs = self.reranker.rerank(query, docs)
 
-        # 3. Build prompt using existing prompt builder
-        prompt = self.prompt_builder.build(
-            query,
-            reranked_docs,
-        )
+        # 4. Build prompt with only valid docs
+        prompt = self.prompt_builder.build(query, docs)
 
-        # 4. Generate answer
+        # 5. Generate answer from LLM (Gemini or Fake)
         response = self.llm.generate(prompt)
 
-        # 5. Return plain text to caller
+        # 6. Return just the text
         return response.text

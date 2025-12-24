@@ -75,7 +75,7 @@ def main():
 
     PROMPTS_DIR = ROOT / "src" / "prompts"
 
-    retriever = Retriever(min_score=0.3)
+    retriever = Retriever(min_score=0.5)
     reranker = Reranker()
 
     prompt_builder = PromptBuilder(
