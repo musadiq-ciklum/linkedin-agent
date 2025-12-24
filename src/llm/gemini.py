@@ -15,8 +15,11 @@ class GeminiLLMClient(LLMClient):
     def generate(self, prompt: str) -> LLMResponse:
         response = self.model.generate_content(prompt)
 
-        # Gemini responses usually expose `.text`
-        text = getattr(response, "text", str(response))
+        # Gemini may return no parts → response.text raises ValueError
+        try:
+            text = response.text
+        except Exception:
+            text = "I could not find this information in the knowledge base."
 
         return LLMResponse(
             text=text,

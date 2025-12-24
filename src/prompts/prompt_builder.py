@@ -77,10 +77,28 @@ class PromptBuilder:
     # Build
     # ---------------------------------------------------------
     def build(self, user_query, chunks):
+        """
+        Build the final prompt for the LLM.
+
+        - If chunks/docs are empty, return explicit refusal prompt.
+        - Otherwise, include context and user query.
+        """
+        # 1. If no context, use refusal templates
+        if not chunks:
+            system_raw = self.system_templates.get("refusal", "")
+            user_raw = self.user_templates.get("refusal", "")
+            final = system_raw + "\n\n" + user_raw.replace("{{query}}", user_query)
+            return final
+
+        # 2. Otherwise, normal prompt
         system_raw = self.system_templates.get(self.mode, "")
         user_raw = self.user_templates.get(self.mode, "")
 
+        # Format context as XML-like blocks
         context = self._format_context(chunks)
 
+        # Combine system, context, and user
         final = system_raw + "\n\n" + context + "\n\n" + user_raw.replace("{{query}}", user_query)
+
         return final
+
