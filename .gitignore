@@ -12,6 +12,8 @@ __pycache__/
 data/raw/*
 data/cleaned/*
 data/chunks/*
+data/chroma/**
+data/chroma_test/**
 
 # Except .gitkeep files
 !data/raw/.gitkeep

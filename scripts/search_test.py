@@ -6,12 +6,13 @@ sys.path.insert(0, ROOT)
 import argparse
 from src.search.semantic_search import semantic_search
 from src.vectorstore.db_store import ChromaStore
+from src.config import CHROMA_DIR
 
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("query", type=str, help="Search query")
-    parser.add_argument("--persist_dir", type=str, default="data/chroma_test", help="Chroma DB folder")
+    parser.add_argument("--persist_dir", type=str, default=CHROMA_DIR, help="Chroma DB folder")
     parser.add_argument("--top_k", type=int, default=10, help="Number of results to return")
     args = parser.parse_args()
 

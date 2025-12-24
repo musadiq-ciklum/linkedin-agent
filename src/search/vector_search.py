@@ -1,11 +1,12 @@
 # src/search/vector_search.py
 from typing import List, Tuple, Optional
 from src.vectorstore.db_store import ChromaStore
+from src.config import CHROMA_DIR
 
 _store: Optional[ChromaStore] = None
 
 
-def get_store(persist_dir: str = "data/chroma") -> ChromaStore:
+def get_store(persist_dir: str = CHROMA_DIR) -> ChromaStore:
     global _store
     if _store is None:
         _store = ChromaStore(persist_dir=persist_dir)
@@ -24,7 +25,7 @@ def vector_search(
     query: str,
     top_k: int = 5,
     store: Optional[ChromaStore] = None,
-    persist_dir: str = "data/chroma"
+    persist_dir: str = CHROMA_DIR
 ) -> List[Tuple[str, float]]:
     
     if not query or not query.strip():

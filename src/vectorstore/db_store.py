@@ -34,13 +34,16 @@ class ChromaStore:
     with a selected embedder.
     """
 
-    def __init__(self, persist_dir: str, embedder_name="hf", embedder_override=None):
+    def __init__(self, persist_dir: str, embedder_name="minilm", embedder_override=None):
         self.persist_dir = persist_dir
         self.embedder_name = embedder_override or embedder_name
         self.embedder = create_embedder(self.embedder_name)
 
         self.client = PersistentClient(path=persist_dir)
         self.collection = self._get_or_create_collection()
+
+        print("Using collection:", self.collection.name)
+        print("Docs count:", self.collection.count())
 
     def _collection_name(self):
         key = f"linkedin_{self.embedder_name}"

@@ -6,6 +6,8 @@ import google.generativeai as genai
 # Load environment variables from .env file
 load_dotenv()
 
+CHROMA_DIR = "data/chroma"
+
 def load_gemini(model_name="models/gemini-2.5-flash"):
     """
     Configures the Gemini API client and returns a model instance.

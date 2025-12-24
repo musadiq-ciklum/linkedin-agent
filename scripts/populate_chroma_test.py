@@ -6,15 +6,15 @@ sys.path.insert(0, ROOT)
 from src.vectorstore.db_store import ChromaStore
 import shutil
 import os
+from src.config import CHROMA_DIR
 
-PERSIST_DIR = "data/chroma_test"
 
 # Reset the directory so the test is always clean
-if os.path.exists(PERSIST_DIR):
-    shutil.rmtree(PERSIST_DIR)
+if os.path.exists(CHROMA_DIR):
+    shutil.rmtree(CHROMA_DIR)
 
 store = ChromaStore(
-    persist_dir=PERSIST_DIR,
+    persist_dir=CHROMA_DIR,
     embedder_name="hf",
     embedder_override="minilm"
 )
@@ -44,8 +44,8 @@ store.add(ids=ids, documents=docs)
 print(f"Collection name: {store.collection.name}")
 print(f"Number of docs: {store.collection.count()}")
 
-# print("\nDocuments in collection:")
-# results = store.collection.get(include=["documents"])
-# for i, doc in enumerate(results["documents"], start=1):
-#     print(f"{i}. {doc}")
+print("\nDocuments in collection:")
+results = store.collection.get(include=["documents"])
+for i, doc in enumerate(results["documents"], start=1):
+    print(f"{i}. {doc}")
 

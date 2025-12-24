@@ -7,6 +7,6 @@ MODEL_MAP = {
     "all-MiniLM-L6-v2": "sentence-transformers/all-MiniLM-L6-v2",
 }
 
-def create_embedder(embedder_name: str = "hf") -> Any:
+def create_embedder(embedder_name: str = "minilm") -> Any:
     model_name = MODEL_MAP.get(embedder_name, embedder_name)
     return SentenceTransformerEmbedder(model_name=model_name)
