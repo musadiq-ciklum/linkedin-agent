@@ -1,0 +1,14 @@
+[
+  {
+    "id": "q1",
+    "query": "What is Retrieval Augmented Generation?",
+    "relevant_docs": ["doc_rag_intro", "doc_llm_rag"],
+    "expected_answer": "Retrieval Augmented Generation combines retrieval with large language models."
+  },
+  {
+    "id": "q2",
+    "query": "Why do we use reranking in RAG?",
+    "relevant_docs": ["doc_rerank", "doc_search_quality"],
+    "expected_answer": "Reranking improves the relevance ordering of retrieved documents."
+  }
+]
