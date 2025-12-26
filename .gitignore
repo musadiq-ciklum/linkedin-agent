@@ -14,8 +14,10 @@ data/cleaned/*
 data/chunks/*
 data/chroma/**
 data/chroma_test/**
+evaluation/reports/*
 
 # Except .gitkeep files
 !data/raw/.gitkeep
 !data/cleaned/.gitkeep
 !data/chunks/.gitkeep
+!evaluation/reports/.gitkeep
