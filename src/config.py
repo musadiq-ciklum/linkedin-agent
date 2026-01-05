@@ -7,6 +7,8 @@ import google.generativeai as genai
 load_dotenv()
 
 CHROMA_DIR = "data/chroma"
+# RAG thresholds
+MIN_RELEVANCE_SCORE = 0.6
 
 def load_gemini(model_name="models/gemini-2.5-flash"):
     """

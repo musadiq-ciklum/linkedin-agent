@@ -62,11 +62,12 @@ class PromptBuilder:
 
         blocks = []
         for c in chunks:
-            blocks.append(f"<doc id=\"{c['id']}\">{c['text']}</doc>")
+            doc_id = c.id if hasattr(c, "id") else c["id"]
+            text = c.text if hasattr(c, "text") else c["text"]
 
-        xml = "<context>\n" + "\n".join(blocks) + "\n</context>"
+            blocks.append(f'<doc id="{doc_id}">{text}</doc>')
 
-        return self._trim_context(xml)
+        return "\n".join(blocks)
 
     def _trim_context(self, text):
         if len(text) <= self.max_chars:
