@@ -8,7 +8,8 @@ load_dotenv()
 
 CHROMA_DIR = "data/chroma"
 # RAG thresholds
-MIN_RELEVANCE_SCORE = 0.6
+MIN_RELEVANCE_SCORE = 0.3
+EXTRACTIVE_SCORE_THRESHOLD = 0.65
 
 def load_gemini(model_name="models/gemini-2.5-flash"):
     """

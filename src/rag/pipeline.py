@@ -5,7 +5,7 @@ from src.prompts.prompt_builder import PromptBuilder
 from src.rag.schema import RetrievedDoc
 from src.search.reranker import BaseRanker
 from src.api.schemas import AskResponse
-from src.config import MIN_RELEVANCE_SCORE
+from src.config import MIN_RELEVANCE_SCORE, EXTRACTIVE_SCORE_THRESHOLD
 
 class RAGPipeline:
     def __init__(
@@ -22,8 +22,24 @@ class RAGPipeline:
         self.prompt_builder = prompt_builder
         self.top_k = top_k
 
+    def _normalize_docs(self, docs):
+        normalized = []
+        for d in docs:
+            if isinstance(d, RetrievedDoc):
+                normalized.append(d)
+            else:
+                normalized.append(
+                    RetrievedDoc(
+                        id=d["id"],
+                        text=d["text"],
+                        score=float(d.get("score", 1.0)),  # ← DEFAULT SCORE
+                    )
+                )
+        return normalized
+
     def _run_core(self, query: str, top_k: int, use_rerank: bool):
         docs = self.retriever.search(query, top_k=top_k)
+        docs = self._normalize_docs(docs)
 
         if not docs:
             return None, []
@@ -42,13 +58,13 @@ class RAGPipeline:
         # -------------------------
         # ANSWER STRATEGY
         # -------------------------
-        if len(docs) == 1 or top_doc.score >= 0.65:
+        if len(docs) == 1 or top_doc.score >= EXTRACTIVE_SCORE_THRESHOLD:
             # Extractive answer
             answer: str = top_doc.text
         else:
             # Generative answer
             prompt = self.prompt_builder.build(query, docs)
-            llm_response = self.llm.generate(prompt)
+            llm_response = self.llm_client.generate(prompt)
             answer: str = llm_response.text
 
         return answer, docs

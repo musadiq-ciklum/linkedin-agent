@@ -67,7 +67,7 @@ class PromptBuilder:
 
             blocks.append(f'<doc id="{doc_id}">{text}</doc>')
 
-        return "\n".join(blocks)
+        return "<context>\n" + "\n".join(blocks) + "\n</context>"
 
     def _trim_context(self, text):
         if len(text) <= self.max_chars:
@@ -81,25 +81,30 @@ class PromptBuilder:
         """
         Build the final prompt for the LLM.
 
-        - If chunks/docs are empty, return explicit refusal prompt.
-        - Otherwise, include context and user query.
+        - Refusal ONLY when mode == "refusal"
+        - Empty chunks → no <context>, but still include system + user
         """
-        # 1. If no context, use refusal templates
-        if not chunks:
+
+        # 1. Explicit refusal mode
+        if self.mode == "refusal":
             system_raw = self.system_templates.get("refusal", "")
             user_raw = self.user_templates.get("refusal", "")
-            final = system_raw + "\n\n" + user_raw.replace("{{query}}", user_query)
-            return final
+            return system_raw + "\n\n" + user_raw.replace("{{query}}", user_query)
 
-        # 2. Otherwise, normal prompt
+        # 2. Normal modes (rag_query, chat, agent, summarizer, rerank)
         system_raw = self.system_templates.get(self.mode, "")
         user_raw = self.user_templates.get(self.mode, "")
 
-        # Format context as XML-like blocks
-        context = self._format_context(chunks)
+        parts = []
 
-        # Combine system, context, and user
-        final = system_raw + "\n\n" + context + "\n\n" + user_raw.replace("{{query}}", user_query)
+        if system_raw:
+            parts.append(system_raw)
 
-        return final
+        if chunks:
+            context = self._format_context(chunks)
+            parts.append(context)
 
+        # ALWAYS include user query
+        parts.append(user_raw.replace("{{query}}", user_query))
+
+        return "\n\n".join(parts)
