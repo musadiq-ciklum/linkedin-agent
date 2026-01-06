@@ -2,9 +2,10 @@
 import os
 os.environ["POSTHOG_DISABLE"] = "1"
 from src.vectorstore.db_store import ChromaStore
+from src.config import CHROMA_DIR
 
 # Use your real ONNX embedder
-store = ChromaStore(persist_dir="data/chroma_test", embedder_override="minilm")
+store = ChromaStore(persist_dir=CHROMA_DIR, embedder_override="minilm")
 
 # Example text
 text = "Hello world! This is a test of embeddings."
