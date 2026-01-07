@@ -1,5 +1,5 @@
 # src/api/schemas.py
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import List, Optional, Dict
 
 
@@ -19,3 +19,11 @@ class AskResponse(BaseModel):
     answer: str
     contexts: List[RetrievedContext]
     metadata: Dict
+
+class EmbeddingResponse(BaseModel):
+    embedding: List[float]
+    model: str
+    dimensions: int
+
+class EmbeddingRequest(BaseModel):
+    text: str = Field(..., min_length=1)
