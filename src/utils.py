@@ -1,3 +1,4 @@
+# src/utils.py
 import re
 
 def clean_text(text: str) -> str:
@@ -19,3 +20,46 @@ def clean_text(text: str) -> str:
 
     # Preserve headings / spacing — DO NOT flatten whitespace globally!
     return text.strip()
+
+# src/utils.py
+
+def split_text(text: str, size: int, overlap: int):
+    chunks = []
+    start = 0
+
+    while start < len(text):
+        end = start + size
+        chunks.append(text[start:end])
+        start = end - overlap
+
+    return chunks
+
+
+def ingest_text(
+    text: str,
+    filename: str,
+    embedder,
+    vector_store,  # ChromaStore
+    chunk_size: int = 500,
+    overlap: int = 50,
+):
+    # 1️⃣ Split text into chunks
+    chunks = split_text(text, chunk_size, overlap)
+
+    # 2️⃣ Embed chunks
+    embeddings = embedder.embed(chunks)
+
+    # 3️⃣ Prepare lists for ChromaStore.add()
+    ids = [f"{filename}_{i}" for i in range(len(chunks))]
+    documents = chunks
+    metadatas = [{"source": filename, "chunk_index": i} for i in range(len(chunks))]
+
+    # 4️⃣ Add to ChromaStore
+    vector_store.add(
+        ids=ids,
+        documents=documents,
+        embeddings=embeddings,
+        metadatas=metadatas,
+    )
+
+    return len(chunks)

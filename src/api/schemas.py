@@ -27,3 +27,9 @@ class EmbeddingResponse(BaseModel):
 
 class EmbeddingRequest(BaseModel):
     text: str = Field(..., min_length=1)
+
+class UploadResponse(BaseModel):
+    status: str
+    filename: str
+    chunks_created: int
+    collection: str
