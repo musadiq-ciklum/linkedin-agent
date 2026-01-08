@@ -1,5 +1,7 @@
 # src/utils.py
 import re
+import io
+import pdfplumber
 
 def clean_text(text: str) -> str:
     """
@@ -63,3 +65,18 @@ def ingest_text(
     )
 
     return len(chunks)
+
+def extract_text_from_pdf_bytes(data: bytes) -> str:
+    """
+    Extract text from PDF bytes and return a single cleaned string.
+    """
+    output = []
+
+    with pdfplumber.open(io.BytesIO(data)) as pdf:
+        for page in pdf.pages:
+            text = page.extract_text()
+            if text:
+                output.append(text)
+
+    combined = "\n\n".join(output)
+    return clean_text(combined)

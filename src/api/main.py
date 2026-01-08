@@ -1,10 +1,10 @@
 # src/api/main.py
-from fastapi import FastAPI, UploadFile, File
+from fastapi import FastAPI, UploadFile, File, HTTPException
 from src.api.schemas import AskRequest, AskResponse
 from src.rag.factory import create_rag_pipeline
 from src.embedder.factory import create_embedder
 from src.api.schemas import EmbeddingRequest, EmbeddingResponse, UploadResponse
-from src.utils import ingest_text
+from src.utils import ingest_text, extract_text_from_pdf_bytes, clean_text
 
 app = FastAPI(title="RAG API")
 
@@ -38,13 +38,26 @@ def embedding(req: EmbeddingRequest):
 
 @app.post("/upload", response_model=UploadResponse)
 async def upload(file: UploadFile = File(...)):
-    text = (await file.read()).decode("utf-8")
+    filename = file.filename.lower()
+    data = await file.read()
+
+    if filename.endswith(".txt"):
+        text = clean_text(data.decode("utf-8"))
+
+    elif filename.endswith(".pdf"):
+        text = extract_text_from_pdf_bytes(data)
+
+    else:
+        raise HTTPException(
+            status_code=400,
+            detail="Only .txt and .pdf files are supported",
+        )
 
     chunks_created = ingest_text(
         text=text,
         filename=file.filename,
         embedder=embedder,
-        vector_store=rag_pipeline.retriever.store,  # ChromaStore
+        vector_store=rag_pipeline.retriever.store,
     )
 
     return UploadResponse(
