@@ -104,7 +104,10 @@ class PromptBuilder:
             context = self._format_context(chunks)
             parts.append(context)
 
-        # ALWAYS include user query
-        parts.append(user_raw.replace("{{query}}", user_query))
+        # GUARANTEE: user message must exist
+        if user_raw:
+            parts.append(user_raw.replace("{{query}}", user_query))
+        else:
+            parts.append(f"Answer the following question:\n{user_query}")
 
         return "\n\n".join(parts)
