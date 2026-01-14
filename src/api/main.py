@@ -5,10 +5,14 @@ from src.rag.factory import create_rag_pipeline
 from src.embedder.factory import create_embedder
 from src.api.schemas import EmbeddingRequest, EmbeddingResponse, UploadResponse
 from src.utils import ingest_text, extract_text_from_pdf_bytes, clean_text
+from src.config import EMBEDDING_MODEL_NAME
 
 app = FastAPI(title="RAG API")
 
-# Initialize pipeline ONCE
+# ---------------------------------------
+# SINGLETONS (must be defined FIRST)
+# ---------------------------------------
+embedder = create_embedder(EMBEDDING_MODEL_NAME)
 rag_pipeline = create_rag_pipeline()
 
 @app.get("/")
@@ -22,8 +26,6 @@ def ask(request: AskRequest):
         top_k=request.top_k,
         use_rerank=request.use_rerank,
     )
-
-embedder = create_embedder()  # singleton, model loads once
 
 @app.post("/embedding", response_model=EmbeddingResponse)
 def embedding(req: EmbeddingRequest):
