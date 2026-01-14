@@ -2,7 +2,9 @@
 
 import hashlib
 from chromadb import PersistentClient
+
 from src.embedder.factory import create_embedder
+from src.config import EMBEDDING_MODEL_NAME
 
 
 class ChromaEmbeddingWrapper:
@@ -18,7 +20,6 @@ class ChromaEmbeddingWrapper:
         if isinstance(input, str):
             input = [input]
 
-        # embedder.embed() returns List[List[float]]
         return self._embedder.embed(input)
 
     def embed(self, input: list[str]):
@@ -30,11 +31,16 @@ class ChromaEmbeddingWrapper:
 
 class ChromaStore:
     """
-    A clean, correct wrapper around ChromaDB for storing documents
-    with a selected embedder.
+    Wrapper around ChromaDB with deterministic collection naming
+    and explicit embedder selection.
     """
 
-    def __init__(self, persist_dir: str, embedder_name="minilm", embedder_override=None):
+    def __init__(
+        self,
+        persist_dir: str,
+        embedder_name: str = EMBEDDING_MODEL_NAME,
+        embedder_override: str | None = None,
+    ):
         self.persist_dir = persist_dir
         self.embedder_name = embedder_override or embedder_name
         self.embedder = create_embedder(self.embedder_name)
@@ -51,9 +57,8 @@ class ChromaStore:
         return f"{key}_{hashed}"
 
     def _get_or_create_collection(self):
-        name = self._collection_name()
         return self.client.get_or_create_collection(
-            name=name,
+            name=self._collection_name(),
             metadata={"hnsw:space": "cosine"},
             embedding_function=ChromaEmbeddingWrapper(self.embedder),
         )
@@ -62,7 +67,7 @@ class ChromaStore:
 
     def add(self, ids, documents, embeddings=None, metadatas=None):
         if embeddings is None:
-            embeddings = self.embedder.embed(documents)  # Correct full-doc embedding
+            embeddings = self.embedder.embed(documents) # Correct full-doc embedding
 
         self.collection.add(
             ids=ids,

@@ -5,7 +5,7 @@ from src.prompts.prompt_builder import PromptBuilder
 from src.rag.schema import RetrievedDoc
 from src.search.reranker import BaseRanker
 from src.api.schemas import AskResponse
-from src.config import MIN_RELEVANCE_SCORE, EXTRACTIVE_SCORE_THRESHOLD
+from src.config import MIN_RELEVANCE_SCORE, EXTRACTIVE_SCORE_THRESHOLD, DEFAULT_TOP_K
 from src.agent.controller import AgentController
 
 class RAGPipeline:
@@ -15,7 +15,7 @@ class RAGPipeline:
         reranker: Optional[BaseRanker],
         llm_client: GeminiLLMClient,
         prompt_builder: PromptBuilder,
-        top_k: int = 5,
+        top_k: int = DEFAULT_TOP_K,
     ):
         self.retriever = retriever
         self.reranker = reranker
@@ -40,6 +40,7 @@ class RAGPipeline:
         return normalized
 
     def _run_core(self, query: str, top_k: int, use_rerank: bool):
+        top_k = top_k or self.top_k
         docs = self.retriever.search(query, top_k=top_k)
         docs = self._normalize_docs(docs)
 
