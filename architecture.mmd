@@ -1,0 +1,78 @@
+flowchart TB
+    %% =========================
+    %% User Interfaces
+    %% =========================
+    UserCLI[CLI User]
+    UserAPI[API Client]
+
+    %% =========================
+    %% Entry Points
+    %% =========================
+    CLI[rag_run.py]
+    API[FastAPI + Uvicorn]
+
+    %% =========================
+    %% Core Agent
+    %% =========================
+    Agent[RAG Agent Pipeline]
+
+    %% =========================
+    %% Reasoning & Control
+    %% =========================
+    Reasoning[LLM Reasoning]
+    Reflection[Self-Reflection]
+    Tooling[Tool Calling / Actions]
+
+    %% =========================
+    %% Retrieval Layer
+    %% =========================
+    Retriever[Retriever]
+    Reranker[Optional Re-ranker]
+    VectorStore[Chroma Vector Store]
+
+    %% =========================
+    %% Models
+    %% =========================
+    LLM[Gemini LLM]
+    Embedder[Embedding Model]
+
+    %% =========================
+    %% Data Ingestion
+    %% =========================
+    Upload[Document Upload]
+    Chunking[Text Cleaning & Chunking]
+
+    %% =========================
+    %% Flow: CLI & API
+    %% =========================
+    UserCLI --> CLI --> Agent
+    UserAPI --> API --> Agent
+
+    %% =========================
+    %% Agent Internal Flow
+    %% =========================
+    Agent --> Reasoning
+    Reasoning --> Retriever
+    Retriever --> VectorStore
+    VectorStore --> Retriever
+    Retriever --> Reranker
+    Reranker --> Reasoning
+
+    %% =========================
+    %% Tool & Reflection Loop
+    %% =========================
+    Reasoning --> Tooling
+    Tooling --> Reasoning
+    Reasoning --> Reflection
+    Reflection --> Reasoning
+
+    %% =========================
+    %% Models Interaction
+    %% =========================
+    Reasoning --> LLM
+    Retriever --> Embedder
+
+    %% =========================
+    %% Ingestion Flow
+    %% =========================
+    Upload --> Chunking --> Embedder --> VectorStore
