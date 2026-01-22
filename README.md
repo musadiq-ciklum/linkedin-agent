@@ -31,7 +31,7 @@ git clone git@github.com:musadiq-ciklum/linkedin-agent.git
 git clone https://github.com/musadiq-ciklum/linkedin-agent.git
 ```
 
-##  🧪 Create Virtual Environment & Install Dependencies
+##  🧪 Create a Virtual Environment & Install Dependencies
 ```bash
 python -m venv venv
 source venv/bin/activate      # Linux/macOS
@@ -41,9 +41,8 @@ pip install -r requirements.txt
 
 
 ## 🔐 Configure Environment Variables
-```bash
 Create a copy of `.env.example` and rename it to `.env`.
-```
+
 **Set your Gemini key**
 ```
 GEMINI_API_KEY=your_real_key_here
@@ -79,6 +78,36 @@ Performs semantic search over the vector store and returns top-k relevant docume
 python src/rag/rag_run.py "Search query"
 ```
 Demonstrates the AI-Agentic workflow, including retrieval, reasoning, tool-calling, self-reflection, and final response generation.
+
+## 🌐 API Usage (FastAPI + Uvicorn)
+The project exposes HTTP endpoints for querying the agent, generating embeddings, and ingesting new documents into the vector store.
+
+**▶️ Start API Server**
+```bash
+uvicorn src.api.main:app --reload
+```
+Once running, the API will be available at:
+```bash
+http://127.0.0.1:8000/docs
+```
+Interactive API documentation is available via Swagger UI.
+
+**POST /ask**
+- Runs the full agentic RAG pipeline:
+- Retrieves relevant documents from the vector store
+- Performs LLM-based reasoning and optional re-ranking
+- Generates a final, context-aware response
+
+**POST /embedding**
+Generates a vector embedding for the provided input text using the configured embedding model.
+
+**POST /upload**
+Uploads a .txt or .pdf document and ingests it into the vector store:
+
+- Extracts and cleans text
+- Chunks content
+- Generates embeddings
+- Stores vectors for future retrieval
 
 ## ⚙️ Configuration
 All parameters are centralized in `src/config.py`. 
