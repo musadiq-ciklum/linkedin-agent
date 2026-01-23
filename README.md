@@ -57,7 +57,7 @@ pytest -v
 
 **📚 Data Preparation**
 ```
-python src/data_prep.py
+python src/data_prep.py data/raw/sample.txt
 ```
 Prepares documents and embeddings for the RAG pipeline.
 

@@ -154,15 +154,17 @@ class RAGPipeline:
         """
 
         prompt = """
-        Write a LinkedIn-style post announcing a project achievement.
+        Write a professional LinkedIn post announcing a project achievement.
 
         Requirements:
-        - 5–7 sentences
-        - Professional, authentic, and celebratory tone
-        - Ready to publish (no placeholders, no templates)
+        - Exactly 5 sentences
+        - Maximum 80 words total
+        - Professional and concise tone (no excessive enthusiasm)
+        - Ready to publish (no placeholders or templates)
         - Explain what the project does and how it was built
         - Mention that it was created as part of the Ciklum AI Academy
         - Optionally mention or tag @Ciklum
+        - Do NOT include emojis or exclamation marks
 
         Project details:
         - Project Name: AI Agentic RAG Assistant
