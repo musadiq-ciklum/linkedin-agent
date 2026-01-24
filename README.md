@@ -57,25 +57,25 @@ pytest -v
 
 **📚 Data Preparation**
 ```
-python src/data_prep.py data/raw/sample.txt
+python scripts/data_prep.py data/raw/sample.txt
 ```
 Prepares documents and embeddings for the RAG pipeline.
 
 **🗂️ Populate Vector Store (Chroma)**
 ```
-python src/populate_chroma_test.py
+python scripts/populate_chroma_test.py
 ```
 Loads embeddings into a local Chroma vector database.
 
 **🔎 Query / Search**
 ```
-python src/search_test.py "Search query"
+python scripts/search_test.py "Search query"
 ```
 Performs semantic search over the vector store and returns top-k relevant documents based on configured thresholds.
 
 **🤖 Run Agent**
 ```
-python src/rag/rag_run.py "Search query"
+python scripts/rag/rag_run.py "Search query"
 ```
 Demonstrates the AI-Agentic workflow, including retrieval, reasoning, tool-calling, self-reflection, and final response generation.
 
