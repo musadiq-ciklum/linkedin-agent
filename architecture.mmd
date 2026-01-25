@@ -43,6 +43,14 @@ flowchart TB
     Chunking[Text Cleaning & Chunking]
 
     %% =========================
+    %% Evaluation (Offline)
+    %% =========================
+    EvalScript[eval_rag.py]
+    EvalData[Evaluation Dataset JSON]
+    Metrics[Precision Recall RAG Quality Latency]
+    Reports[CSV Reports]
+
+    %% =========================
     %% Flow: CLI & API
     %% =========================
     UserCLI --> CLI --> Agent
@@ -77,38 +85,12 @@ flowchart TB
     %% =========================
     Upload --> Chunking --> Embedder --> VectorStore
 
-
-    %% ======================================================
-    %% OFFLINE EVALUATION PIPELINE (Non-Production)
-    %% ======================================================
-    EvalCLI[eval_rag.py]
-    EvalDataset[Evaluation Dataset<br/>(JSON)]
-    Metrics[Evaluation Metrics]
-    Reports[CSV Reports]
-
-    Precision[Precision@K]
-    Recall[Recall@K]
-    Quality[RAG Quality Score]
-    Latency[Latency Metrics]
-
-    WithRerank[Pipeline<br/>With Reranker]
-    WithoutRerank[Pipeline<br/>Without Reranker]
-
     %% =========================
     %% Evaluation Flow
     %% =========================
-    EvalCLI --> EvalDataset
-    EvalCLI --> WithRerank
-    EvalCLI --> WithoutRerank
-
-    WithRerank --> Agent
-    WithoutRerank --> Agent
-
-    Agent --> Metrics
-
-    Metrics --> Precision
-    Metrics --> Recall
-    Metrics --> Quality
-    Metrics --> Latency
-
+    EvalData --> EvalScript
+    EvalScript --> Retriever
+    EvalScript --> Reranker
+    EvalScript --> LLM
+    EvalScript --> Metrics
     Metrics --> Reports
