@@ -76,3 +76,39 @@ flowchart TB
     %% Ingestion Flow
     %% =========================
     Upload --> Chunking --> Embedder --> VectorStore
+
+
+    %% ======================================================
+    %% OFFLINE EVALUATION PIPELINE (Non-Production)
+    %% ======================================================
+    EvalCLI[eval_rag.py]
+    EvalDataset[Evaluation Dataset<br/>(JSON)]
+    Metrics[Evaluation Metrics]
+    Reports[CSV Reports]
+
+    Precision[Precision@K]
+    Recall[Recall@K]
+    Quality[RAG Quality Score]
+    Latency[Latency Metrics]
+
+    WithRerank[Pipeline<br/>With Reranker]
+    WithoutRerank[Pipeline<br/>Without Reranker]
+
+    %% =========================
+    %% Evaluation Flow
+    %% =========================
+    EvalCLI --> EvalDataset
+    EvalCLI --> WithRerank
+    EvalCLI --> WithoutRerank
+
+    WithRerank --> Agent
+    WithoutRerank --> Agent
+
+    Agent --> Metrics
+
+    Metrics --> Precision
+    Metrics --> Recall
+    Metrics --> Quality
+    Metrics --> Latency
+
+    Metrics --> Reports

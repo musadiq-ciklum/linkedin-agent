@@ -57,25 +57,25 @@ pytest -v
 
 **📚 Data Preparation**
 ```
-python src/data_prep.py
+python scripts/data_prep.py data/raw/sample.txt
 ```
 Prepares documents and embeddings for the RAG pipeline.
 
 **🗂️ Populate Vector Store (Chroma)**
 ```
-python src/populate_chroma_test.py
+python scripts/populate_chroma_test.py
 ```
 Loads embeddings into a local Chroma vector database.
 
 **🔎 Query / Search**
 ```
-python src/search_test.py "Search query"
+python scripts/search_test.py "Search query"
 ```
 Performs semantic search over the vector store and returns top-k relevant documents based on configured thresholds.
 
 **🤖 Run Agent**
 ```
-python src/rag/rag_run.py "Search query"
+python scripts/rag/rag_run.py "Search query"
 ```
 Demonstrates the AI-Agentic workflow, including retrieval, reasoning, tool-calling, self-reflection, and final response generation.
 
@@ -108,6 +108,49 @@ Uploads a .txt or .pdf document and ingests it into the vector store:
 - Chunks content
 - Generates embeddings
 - Stores vectors for future retrieval
+
+## 🧰 Technology Stack
+
+This project is built using the following technologies and libraries:
+
+- **Python 3.10+** – Core programming language
+- **FastAPI** – API framework for exposing agent endpoints
+- **Uvicorn** – ASGI server for running the FastAPI application
+- **Google Gemini API** – Large Language Model used for reasoning and response generation
+- **Sentence-Transformers (MiniLM)** – Embedding generation for semantic retrieval
+- **ChromaDB** – Vector database for storing and retrieving embeddings
+- **Pytest** – Unit testing and validation
+- **dotenv** – Environment variable management
+- **Mermaid (architecture.mmd)** – High-level system architecture visualization
+
+The system follows a modular, agentic RAG design with configurable retrieval, reasoning, tool execution, and self-reflection components.
+
+## 📏 Evaluation
+
+The system includes an offline evaluation pipeline to measure retrieval quality, answer relevance, and performance characteristics of the RAG workflow.
+
+Evaluation is performed using a small labeled dataset and compares agent behavior **with and without reranking**.
+
+**Metrics used:**
+- **Precision@K** – Measures how many retrieved documents are relevant
+- **Recall@K** – Measures coverage of relevant documents
+- **RAG Quality Score** – Keyword overlap between generated and expected answers
+- **Latency Metrics** – Retrieval, reranking, LLM, and total response time
+
+**Run Evaluation**
+```bash
+python evaluation/eval_rag.py
+```
+
+This script:
+- Executes the RAG pipeline on a sample evaluation dataset
+- Compares reranked vs non-reranked retrieval
+- Exports CSV reports to:
+  - evaluation/reports/report_with_rerank.csv
+  - evaluation/reports/report_without_rerank.csv
+
+The evaluation setup ensures the agent’s retrieval effectiveness, reasoning quality, and performance characteristics can be inspected and compared in a reproducible manner.
+
 
 ## ⚙️ Configuration
 All parameters are centralized in `src/config.py`. 
