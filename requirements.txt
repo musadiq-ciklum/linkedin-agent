@@ -8,3 +8,4 @@ sentence-transformers
 onnxruntime>=1.15.0
 fastapi>=0.100.0
 uvicorn[standard]>=0.22.0
+streamlit>=1.35.0
