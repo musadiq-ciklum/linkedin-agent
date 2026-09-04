@@ -55,6 +55,13 @@ DEFAULT_TOP_K = int(os.getenv("DEFAULT_TOP_K", 5))
 MAX_CONTEXT_DOCS = int(os.getenv("MAX_CONTEXT_DOCS", 8))
 
 # ============================================================
+# Auth / Database
+# ============================================================
+
+AUTH_SECRET_KEY = os.getenv("AUTH_SECRET_KEY", "change-me-in-production")
+SQLITE_DB_PATH = os.getenv("SQLITE_DB_PATH", "data/app.db")
+
+# ============================================================
 # Gemini Loader
 # ============================================================
 

@@ -15,6 +15,9 @@ pytest -v
 # Run a single test file
 pytest tests/test_rag_pipeline.py -v
 
+# Run database migrations (run once before starting the app, and after adding new migrations)
+python scripts/migrate.py
+
 # Start the API server
 uvicorn src.api.main:app --reload
 
