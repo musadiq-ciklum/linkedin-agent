@@ -3,7 +3,17 @@ import streamlit as st
 import streamlit.components.v1 as components
 from src.rag.factory import create_rag_pipeline
 from src.db.sqlite import is_db_ready
-from src.auth.service import login_user, register_user, verify_token
+from src.auth.service import login_user, register_user, verify_token, get_user_id_by_username
+from src.chat.service import (
+    get_or_create_session,
+    create_new_session,
+    save_message,
+    load_session,
+    load_recent_messages,
+    list_sessions,
+    rename_session,
+    delete_session,
+)
 
 COOKIE_NAME = "auth_token"
 COOKIE_MAX_AGE = 86400  # 24 hours
@@ -86,16 +96,103 @@ if not username:
     _render_auth_screen()
 else:
     st.session_state["auth_token"] = token
-    st.title("LinkedIn RAG Assistant")
 
-    if "messages" not in st.session_state:
-        st.session_state.messages = []
+    if "user_id" not in st.session_state:
+        st.session_state["user_id"] = get_user_id_by_username(username)
+
+    user_id = st.session_state["user_id"]
+
+    if "chat_session_id" not in st.session_state:
+        chat_session = get_or_create_session(user_id)
+        st.session_state["chat_session_id"] = chat_session.id
+        st.session_state["messages"] = load_recent_messages(chat_session.id)
+
+    st.title("LinkedIn RAG Assistant")
 
     with st.sidebar:
         st.write(f"Signed in as **{username}**")
         if st.button("Logout"):
             st.session_state.clear()
             _remove_cookie_and_reload(COOKIE_NAME)
+
+        if st.button("New Conversation"):
+            new_session = create_new_session(user_id)
+            st.session_state["chat_session_id"] = new_session.id
+            st.session_state["messages"] = []
+            st.rerun()
+
+        st.divider()
+        st.subheader("Past Sessions")
+        past_sessions = list_sessions(user_id)
+        current_id = st.session_state["chat_session_id"]
+        editing_id = st.session_state.get("editing_session_id")
+        confirm_delete_id = st.session_state.get("confirm_delete_id")
+
+        for s in past_sessions:
+            label = s.title if s.title else s.created_at[:16].replace("T", " ")
+            is_current = s.id == current_id
+
+            if editing_id == s.id:
+                with st.form(key=f"rename_form_{s.id}"):
+                    new_title = st.text_input("Name", value=s.title or "")
+                    col_save, col_cancel = st.columns(2)
+                    with col_save:
+                        save_clicked = st.form_submit_button("Save")
+                    with col_cancel:
+                        cancel_clicked = st.form_submit_button("Cancel")
+                if save_clicked:
+                    rename_session(s.id, new_title.strip() or label)
+                    st.session_state.pop("editing_session_id", None)
+                    st.rerun()
+                if cancel_clicked:
+                    st.session_state.pop("editing_session_id", None)
+                    st.rerun()
+            elif confirm_delete_id == s.id:
+                st.warning(f'Delete "{label}"?')
+                col_yes, col_no = st.columns(2)
+                with col_yes:
+                    if st.button("Delete", key=f"yes_{s.id}", type="primary"):
+                        delete_session(s.id)
+                        st.session_state.pop("confirm_delete_id", None)
+                        if is_current:
+                            remaining = [x for x in past_sessions if x.id != s.id]
+                            if remaining:
+                                st.session_state["chat_session_id"] = remaining[0].id
+                                st.session_state["messages"] = load_session(remaining[0].id)
+                            else:
+                                new_s = create_new_session(user_id)
+                                st.session_state["chat_session_id"] = new_s.id
+                                st.session_state["messages"] = []
+                        st.rerun()
+                with col_no:
+                    if st.button("Cancel", key=f"no_{s.id}"):
+                        st.session_state.pop("confirm_delete_id", None)
+                        st.rerun()
+            else:
+                col_label, col_menu = st.columns([5, 1])
+                with col_label:
+                    if is_current:
+                        st.markdown(
+                            f'<div style="background:#dce8ff;padding:6px 10px;'
+                            f'border-radius:6px;border-left:3px solid #2563eb;'
+                            f'font-size:14px;margin:2px 0;">{label}</div>',
+                            unsafe_allow_html=True,
+                        )
+                    else:
+                        if st.button(label, key=f"session_{s.id}", use_container_width=True):
+                            st.session_state["chat_session_id"] = s.id
+                            st.session_state["messages"] = load_session(s.id)
+                            st.rerun()
+                with col_menu:
+                    with st.popover("⋮", use_container_width=True):
+                        if st.button("✎ Rename", key=f"edit_{s.id}", use_container_width=True):
+                            st.session_state["editing_session_id"] = s.id
+                            st.rerun()
+                        if st.button("🗑 Delete", key=f"del_{s.id}", use_container_width=True):
+                            st.session_state["confirm_delete_id"] = s.id
+                            st.rerun()
+
+        st.divider()
         st.header("Retrieved Context")
         last_assistant = next(
             (m for m in reversed(st.session_state.messages) if m["role"] == "assistant"),
@@ -113,20 +210,25 @@ else:
             st.markdown(msg["content"])
 
     if prompt := st.chat_input("Ask a question..."):
+        current_session_id = st.session_state["chat_session_id"]
+
+        save_message(current_session_id, "user", prompt, contexts=[])
         st.session_state.messages.append({"role": "user", "content": prompt, "contexts": []})
         with st.chat_message("user"):
             st.markdown(prompt)
 
         pipeline = get_pipeline()
         result = pipeline.run_with_context(prompt)
+        contexts = [
+            {"doc_id": c.doc_id, "score": c.score, "content": c.content}
+            for c in result.contexts
+        ]
 
+        save_message(current_session_id, "assistant", result.answer, contexts=contexts)
         st.session_state.messages.append({
             "role": "assistant",
             "content": result.answer,
-            "contexts": [
-                {"doc_id": c.doc_id, "score": c.score, "content": c.content}
-                for c in result.contexts
-            ],
+            "contexts": contexts,
         })
 
         with st.chat_message("assistant"):

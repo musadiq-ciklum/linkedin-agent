@@ -42,6 +42,15 @@ def login_user(username: str, password: str, db_path: str | None = None) -> str 
     return serializer.dumps({"sub": username})
 
 
+def get_user_id_by_username(username: str, db_path: str | None = None) -> int:
+    run_migrations(db_path)
+    with get_session(db_path) as session:
+        user = repository.get_by_username(session, username)
+        if user is None:
+            raise ValueError(f"User '{username}' not found.")
+        return user.id
+
+
 def verify_token(token: str, max_age_seconds: int = 86400) -> str | None:
     serializer = URLSafeTimedSerializer(AUTH_SECRET_KEY)
     try:
