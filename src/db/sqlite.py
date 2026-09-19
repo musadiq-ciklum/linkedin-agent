@@ -58,7 +58,6 @@ def run_migrations(db_path: str | None = None) -> None:
         migration_files = sorted(MIGRATIONS_DIR.glob("*.sql"))
         for path in migration_files:
             if path.name in applied:
-                print(f"  skip  {path.name}")
                 continue
             sql = path.read_text()
             conn.executescript(sql)

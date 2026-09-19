@@ -62,6 +62,15 @@ AUTH_SECRET_KEY = os.getenv("AUTH_SECRET_KEY", "change-me-in-production")
 SQLITE_DB_PATH = os.getenv("SQLITE_DB_PATH", "data/app.db")
 
 # ============================================================
+# Confluence (MCP)
+# ============================================================
+
+CONFLUENCE_URL = os.getenv("CONFLUENCE_URL", "")
+CONFLUENCE_USER = os.getenv("CONFLUENCE_USER", "")
+CONFLUENCE_API_TOKEN = os.getenv("CONFLUENCE_API_TOKEN", "")
+CONFLUENCE_SPACE_KEY = os.getenv("CONFLUENCE_SPACE_KEY", "")
+
+# ============================================================
 # Gemini Loader
 # ============================================================
 
