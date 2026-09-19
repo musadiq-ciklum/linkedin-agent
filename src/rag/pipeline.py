@@ -1,4 +1,5 @@
 # src/rag/pipeline.py
+import json
 from typing import Optional, List
 from src.llm.gemini import GeminiLLMClient
 from src.prompts.prompt_builder import PromptBuilder
@@ -75,8 +76,47 @@ class RAGPipeline:
     # -----------------------------
     # Script-friendly
     # -----------------------------
+    def _run_confluence(self, query: str) -> AskResponse:
+        from src.mcp.client import call_tool
+        try:
+            raw = call_tool("search_confluence", {"query": query})
+            results = json.loads(raw)
+        except Exception as e:
+            return AskResponse(
+                answer="Confluence is not available. Please check your credentials in .env.",
+                contexts=[],
+                metadata={"agent_decision": "confluence", "error": str(e)},
+            )
+
+        if not results:
+            return AskResponse(
+                answer="No Confluence results found for your query.",
+                contexts=[],
+                metadata={"agent_decision": "confluence"},
+            )
+
+        docs = [RetrievedDoc(id=r["page_id"], text=r["text"], score=1.0) for r in results]
+
+        if self.reranker:
+            docs = self.reranker.rerank(query, docs)
+
+        prompt = self.prompt_builder.build(query, docs)
+        answer = self.llm_client.generate(prompt).text.strip()
+
+        return AskResponse(
+            answer=answer,
+            contexts=[
+                {"doc_id": r["page_id"], "score": 1.0, "content": r["text"]}
+                for r in results
+            ],
+            metadata={"agent_decision": "confluence"},
+        )
+
     def run(self, query: str, top_k: Optional[int] = None, use_rerank: bool = True) -> str:
         decision = self.agent.decide(query)
+
+        if decision == "confluence":
+            return self._run_confluence(query).answer
 
         if decision == "generate":
             return self._run_generate_only(query)
@@ -95,6 +135,10 @@ class RAGPipeline:
     ) -> AskResponse:
 
         decision = self.agent.decide(query)
+
+        if decision == "confluence":
+            return self._run_confluence(query)
+
         if decision == "generate":
             answer = self._run_generate_only(query)
             return AskResponse(
@@ -102,7 +146,7 @@ class RAGPipeline:
                 contexts=[],
                 metadata={"agent_decision": "generate"},
             )
-        
+
         answer, docs = self._run_core(
             query=query,
             top_k=top_k or self.top_k,
