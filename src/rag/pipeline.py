@@ -112,11 +112,50 @@ class RAGPipeline:
             metadata={"agent_decision": "confluence"},
         )
 
+    def _run_git(self, query: str) -> AskResponse:
+        from src.mcp.client import call_tool
+        try:
+            raw = call_tool("search_git", {"query": query})
+            results = json.loads(raw)
+        except Exception as e:
+            return AskResponse(
+                answer="Git source is not available. Please check GIT_REPO_URL in .env.",
+                contexts=[],
+                metadata={"agent_decision": "git", "error": str(e)},
+            )
+
+        if not results:
+            return AskResponse(
+                answer="No Git repository results found for your query.",
+                contexts=[],
+                metadata={"agent_decision": "git"},
+            )
+
+        docs = [RetrievedDoc(id=r["doc_id"], text=r["text"], score=1.0) for r in results]
+
+        if self.reranker:
+            docs = self.reranker.rerank(query, docs)
+
+        prompt = self.prompt_builder.build(query, docs)
+        answer = self.llm_client.generate(prompt).text.strip()
+
+        return AskResponse(
+            answer=answer,
+            contexts=[
+                {"doc_id": r["doc_id"], "score": 1.0, "content": r["text"]}
+                for r in results
+            ],
+            metadata={"agent_decision": "git"},
+        )
+
     def run(self, query: str, top_k: Optional[int] = None, use_rerank: bool = True) -> str:
         decision = self.agent.decide(query)
 
         if decision == "confluence":
             return self._run_confluence(query).answer
+
+        if decision == "git":
+            return self._run_git(query).answer
 
         if decision == "generate":
             return self._run_generate_only(query)
@@ -138,6 +177,9 @@ class RAGPipeline:
 
         if decision == "confluence":
             return self._run_confluence(query)
+
+        if decision == "git":
+            return self._run_git(query)
 
         if decision == "generate":
             answer = self._run_generate_only(query)

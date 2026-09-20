@@ -13,6 +13,10 @@ from src.config import (
     CONFLUENCE_USER,
     CONFLUENCE_API_TOKEN,
     CONFLUENCE_SPACE_KEY,
+    GIT_REPO_URL,
+    GIT_LOCAL_PATH,
+    GIT_TOKEN,
+    GIT_EXTENSIONS,
 )
 
 mcp = FastMCP("LinkedIn RAG")
@@ -43,6 +47,41 @@ if CONFLUENCE_URL and CONFLUENCE_USER and CONFLUENCE_API_TOKEN:
     def get_confluence_page(page_id: str) -> str:
         """Fetch the full content of a Confluence page by its ID."""
         return _confluence().fetch_page(page_id).text
+
+
+# ── Git tools (registered only when GIT_REPO_URL is configured) ───────────────
+
+if GIT_REPO_URL:
+    from src.mcp.git_source import GitSource
+
+    _git_source: GitSource | None = None
+
+    def _get_git_source() -> GitSource:
+        global _git_source
+        if _git_source is None:
+            extensions = [e.strip() for e in GIT_EXTENSIONS.split(",") if e.strip()]
+            _git_source = GitSource(
+                repo_url=GIT_REPO_URL,
+                local_path=GIT_LOCAL_PATH,
+                token=GIT_TOKEN or None,
+                file_extensions=extensions or None,
+            )
+            _git_source.initialize()
+        return _git_source
+
+    @mcp.tool()
+    def search_git(query: str) -> str:
+        """Search Git repository files for content relevant to the query. Returns a JSON list of results."""
+        results = _get_git_source().search(query)
+        return json.dumps([
+            {
+                "doc_id": r.doc_id,
+                "file_path": r.metadata.get("file_path", ""),
+                "repo": r.metadata.get("repo", ""),
+                "text": r.text,
+            }
+            for r in results
+        ])
 
 
 if __name__ == "__main__":
