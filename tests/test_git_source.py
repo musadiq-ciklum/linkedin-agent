@@ -2,7 +2,7 @@
 from pathlib import Path
 from unittest.mock import patch, MagicMock
 
-from src.mcp.git_source import GitSource, DEFAULT_EXTENSIONS
+from src.mcp.git_source import GitSource
 from src.mcp.base import SourceDocument
 
 
@@ -109,14 +109,14 @@ def test_search_limits_results_to_limit_param(tmp_path):
     with patch("src.mcp.git_source.Repo", return_value=mock_repo):
         results = source.search("Python FastAPI", limit=3)
 
-    assert len(results) <= 3
+    assert len(results) == 3
 
 
 def test_search_ignores_non_matching_extensions(tmp_path):
     local = tmp_path / "repo"
     local.mkdir()
     (local / ".git").mkdir()
-    (local / "script.py").write_text("def python_function(): pass")
+    (local / "config.json").write_text('{"python": "function", "project": "setup"}')
     (local / "README.md").write_text("Python documentation for the project.")
 
     source = GitSource(
@@ -128,17 +128,79 @@ def test_search_ignores_non_matching_extensions(tmp_path):
         results = source.search("python function")
 
     for r in results:
-        assert not r.metadata["file_path"].endswith(".py")
+        assert not r.metadata["file_path"].endswith(".json")
+
+
+# ── _extract_filename ─────────────────────────────────────────────────────────
+
+def test_extract_filename_detects_file_path_in_query():
+    assert GitSource._extract_filename("what does src/mcp/confluence.py contain") == "confluence.py"
+
+
+def test_extract_filename_detects_bare_filename():
+    assert GitSource._extract_filename("explain confluence.py") == "confluence.py"
+
+
+def test_extract_filename_returns_none_for_plain_query():
+    assert GitSource._extract_filename("how does the RAG pipeline work") is None
+
+
+# ── _fetch_file ───────────────────────────────────────────────────────────────
+
+def test_fetch_file_returns_source_document_for_existing_file(tmp_path):
+    local = tmp_path / "repo"
+    local.mkdir()
+    (local / ".git").mkdir()
+    (local / "README.md").write_text("# My Project\nThis is the readme.")
+
+    source = GitSource(repo_url="https://github.com/example/repo.git", local_path=str(local))
+    mock_repo = MagicMock()
+    with patch("src.mcp.git_source.Repo", return_value=mock_repo):
+        source._clone_or_pull()
+        result = source._fetch_file("README.md")
+
+    assert result is not None
+    assert isinstance(result, SourceDocument)
+    assert "My Project" in result.text
+    assert result.metadata["file_path"] == "README.md"
+
+
+def test_fetch_file_returns_none_for_missing_file(tmp_path):
+    local = tmp_path / "repo"
+    local.mkdir()
+    (local / ".git").mkdir()
+
+    source = GitSource(repo_url="https://github.com/example/repo.git", local_path=str(local))
+    mock_repo = MagicMock()
+    with patch("src.mcp.git_source.Repo", return_value=mock_repo):
+        source._clone_or_pull()
+        result = source._fetch_file("nonexistent.py")
+
+    assert result is None
+
+
+def test_fetch_file_truncates_large_files(tmp_path):
+    local = tmp_path / "repo"
+    local.mkdir()
+    (local / ".git").mkdir()
+    (local / "big.md").write_text("x" * 5000)
+
+    source = GitSource(repo_url="https://github.com/example/repo.git", local_path=str(local))
+    mock_repo = MagicMock()
+    with patch("src.mcp.git_source.Repo", return_value=mock_repo):
+        source._clone_or_pull()
+        result = source._fetch_file("big.md")
+
+    assert result is not None
+    assert "truncated" in result.text
 
 
 # ── default extensions ─────────────────────────────────────────────────────────
 
-def test_default_extensions_include_common_doc_formats():
-    assert ".md" in DEFAULT_EXTENSIONS
-    assert ".txt" in DEFAULT_EXTENSIONS
-    assert ".rst" in DEFAULT_EXTENSIONS
-
-
-def test_default_extensions_exclude_code_files():
-    assert ".py" not in DEFAULT_EXTENSIONS
-    assert ".js" not in DEFAULT_EXTENSIONS
+def test_default_extensions_include_common_doc_and_code_formats():
+    from src.config import GIT_EXTENSIONS
+    extensions = {e.strip() for e in GIT_EXTENSIONS.split(",") if e.strip()}
+    assert ".md" in extensions
+    assert ".txt" in extensions
+    assert ".rst" in extensions
+    assert ".py" in extensions

@@ -23,15 +23,16 @@ class AgentController:
 
         git_triggers = [
             "git", "repo", "repository", "source code", "readme", "commit", "branch",
+            "in the repo", "src/",
         ]
-
-        confluence_configured = bool(CONFLUENCE_URL and CONFLUENCE_USER and CONFLUENCE_API_TOKEN)
-        if confluence_configured and any(t in q for t in confluence_triggers):
-            return "confluence"
 
         git_configured = bool(GIT_REPO_URL)
         if git_configured and any(t in q for t in git_triggers):
             return "git"
+
+        confluence_configured = bool(CONFLUENCE_URL and CONFLUENCE_USER and CONFLUENCE_API_TOKEN)
+        if confluence_configured and any(t in q for t in confluence_triggers):
+            return "confluence"
 
         if any(t in q for t in generative_triggers):
             return "generate"
