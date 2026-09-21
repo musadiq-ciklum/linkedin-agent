@@ -71,6 +71,15 @@ CONFLUENCE_API_TOKEN = os.getenv("CONFLUENCE_API_TOKEN", "")
 CONFLUENCE_SPACE_KEY = os.getenv("CONFLUENCE_SPACE_KEY", "")
 
 # ============================================================
+# Git (MCP) — leave blank to disable
+# ============================================================
+
+GIT_REPO_URL   = os.getenv("GIT_REPO_URL", "")
+GIT_LOCAL_PATH = os.getenv("GIT_LOCAL_PATH", "data/git_repos")
+GIT_TOKEN      = os.getenv("GIT_TOKEN", "")
+GIT_EXTENSIONS = os.getenv("GIT_EXTENSIONS", ".md,.txt,.rst,.py")
+
+# ============================================================
 # Gemini Loader
 # ============================================================
 

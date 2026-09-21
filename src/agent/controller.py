@@ -1,5 +1,5 @@
 # src/agent/controller.py
-from src.config import CONFLUENCE_URL, CONFLUENCE_USER, CONFLUENCE_API_TOKEN
+from src.config import CONFLUENCE_URL, CONFLUENCE_USER, CONFLUENCE_API_TOKEN, GIT_REPO_URL
 
 
 class AgentController:
@@ -20,6 +20,15 @@ class AgentController:
             "describe yourself", "how you were built",
             "this project", "ai academy", "ciklum"
         ]
+
+        git_triggers = [
+            "git", "repo", "repository", "source code", "readme", "commit", "branch",
+            "in the repo", "src/",
+        ]
+
+        git_configured = bool(GIT_REPO_URL)
+        if git_configured and any(t in q for t in git_triggers):
+            return "git"
 
         confluence_configured = bool(CONFLUENCE_URL and CONFLUENCE_USER and CONFLUENCE_API_TOKEN)
         if confluence_configured and any(t in q for t in confluence_triggers):
