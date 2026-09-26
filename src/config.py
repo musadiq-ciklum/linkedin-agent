@@ -60,6 +60,7 @@ MAX_CONTEXT_DOCS = int(os.getenv("MAX_CONTEXT_DOCS", 8))
 
 AUTH_SECRET_KEY = os.getenv("AUTH_SECRET_KEY", "change-me-in-production")
 SQLITE_DB_PATH = os.getenv("SQLITE_DB_PATH", "data/app.db")
+SESSION_MAX_AGE = 10800  # 3 hours inactivity timeout
 
 # ============================================================
 # Confluence (MCP)
