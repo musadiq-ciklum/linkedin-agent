@@ -20,9 +20,9 @@ store = ChromaStore(
 )
 
 docs = [
-    """Python is a high-level programming language widely used in AI and data science.
-    It supports libraries such as TensorFlow, PyTorch, and scikit-learn for building machine learning models.
-    Developers can easily preprocess data, train models, and evaluate performance using Python.""",
+    """Python is a high-level programming language known for its simple and readable syntax.
+    It is widely used in web development, scripting, and automation.
+    Popular frameworks include Django and Flask for building web applications and APIs.""",
 
     """Machine learning models require embeddings to convert text into vectors for similarity search.
     Embeddings capture semantic meaning of text and allow search engines to rank documents based on relevance.
