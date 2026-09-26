@@ -28,6 +28,16 @@ def get_pipeline():
     return create_rag_pipeline()
 
 
+def generate_session_title(first_message: str) -> str:
+    prompt = (
+        "Generate a short title (3 to 6 words) for a chat session that starts with this message. "
+        "Return ONLY the title, no punctuation, no quotes:\n\n"
+        f"{first_message}"
+    )
+    response = get_pipeline().llm_client.generate(prompt)
+    return response.text.strip()
+
+
 def _set_cookie_and_reload(name: str, value: str) -> None:
     """Set cookie and force a full page reload so st.context.cookies picks it up."""
     components.html(
@@ -211,6 +221,10 @@ else:
 
     if prompt := st.chat_input("Ask a question..."):
         current_session_id = st.session_state["chat_session_id"]
+
+        if not st.session_state.messages:
+            title = generate_session_title(prompt)
+            rename_session(current_session_id, title)
 
         save_message(current_session_id, "user", prompt, contexts=[])
         st.session_state.messages.append({"role": "user", "content": prompt, "contexts": []})
