@@ -52,7 +52,6 @@ EXTRACTIVE_SCORE_THRESHOLD = float(
 # ============================================================
 
 DEFAULT_TOP_K = int(os.getenv("DEFAULT_TOP_K", 5))
-MAX_CONTEXT_DOCS = int(os.getenv("MAX_CONTEXT_DOCS", 8))
 
 # ============================================================
 # Auth / Database
