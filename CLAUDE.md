@@ -41,7 +41,7 @@ python evaluation/eval_rag.py
 
 Copy `.env.example` to `.env` and set:
 - `GEMINI_API_KEY` — required for the LLM client and GeminiRanker
-- `CHROMA_DIR`, `GEMINI_MODEL_NAME`, `EMBEDDING_MODEL_NAME`, `MIN_RELEVANCE_SCORE`, `EXTRACTIVE_SCORE_THRESHOLD`, `DEFAULT_TOP_K`, `MAX_CONTEXT_DOCS` — all have defaults in `src/config.py`
+- `CHROMA_DIR`, `GEMINI_MODEL_NAME`, `EMBEDDING_MODEL_NAME`, `MIN_RELEVANCE_SCORE`, `EXTRACTIVE_SCORE_THRESHOLD`, `DEFAULT_TOP_K` — all have defaults in `src/config.py`
 
 ## Architecture
 

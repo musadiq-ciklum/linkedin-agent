@@ -163,4 +163,3 @@ Key options:
 - `MIN_RELEVANCE_SCORE` – Threshold for document relevance
 - `EXTRACTIVE_SCORE_THRESHOLD` – Threshold for extractive answers
 - `DEFAULT_TOP_K` – Number of documents retrieved per query
-- `MAX_CONTEXT_DOCS` – Maximum number of context documents for reasoning
