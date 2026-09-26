@@ -1,9 +1,11 @@
 # app.py
+import time
 import streamlit as st
 import streamlit.components.v1 as components
 from src.rag.factory import create_rag_pipeline
 from src.db.sqlite import is_db_ready
 from src.auth.service import login_user, register_user, verify_token, get_user_id_by_username
+from src.config import SESSION_MAX_AGE
 from src.chat.service import (
     get_or_create_session,
     create_new_session,
@@ -105,6 +107,14 @@ username = verify_token(token) if token else None
 if not username:
     _render_auth_screen()
 else:
+    now = time.time()
+    last_activity = st.session_state.get("last_activity")
+    if last_activity and (now - last_activity) > SESSION_MAX_AGE:
+        st.session_state.clear()
+        st.warning("Your session expired due to inactivity. Please log in again.")
+        st.stop()
+    st.session_state["last_activity"] = now
+
     st.session_state["auth_token"] = token
 
     if "user_id" not in st.session_state:
