@@ -1,7 +1,7 @@
 # src/rag/factory.py
 from src.rag.pipeline import RAGPipeline
 from src.search.retriever_adapter import SemanticSearchRetriever
-from src.search.reranker import BaseRanker, LocalSimpleRanker
+from src.search.reranker import BaseRanker, CrossEncoderRanker
 from src.vectorstore.db_store import ChromaStore
 from src.llm.gemini import GeminiLLMClient
 from src.prompts.prompt_builder import PromptBuilder
@@ -13,7 +13,7 @@ def create_rag_pipeline() -> RAGPipeline:
     store = ChromaStore(persist_dir=CHROMA_DIR)
 
     # 2. Ranking
-    ranker: BaseRanker = LocalSimpleRanker()
+    ranker: BaseRanker = CrossEncoderRanker()
 
     # 3. Retriever
     retriever = SemanticSearchRetriever(
