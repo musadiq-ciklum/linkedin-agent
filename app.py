@@ -242,20 +242,16 @@ else:
             st.markdown(prompt)
 
         pipeline = get_pipeline()
-        result = pipeline.run_with_context(prompt)
-        contexts = [
-            {"doc_id": c.doc_id, "score": c.score, "content": c.content}
-            for c in result.contexts
-        ]
-
-        save_message(current_session_id, "assistant", result.answer, contexts=contexts)
-        st.session_state.messages.append({
-            "role": "assistant",
-            "content": result.answer,
-            "contexts": contexts,
-        })
+        contexts, token_stream = pipeline.stream_with_context(prompt)
 
         with st.chat_message("assistant"):
-            st.markdown(result.answer)
+            full_answer = st.write_stream(token_stream)
+
+        save_message(current_session_id, "assistant", full_answer, contexts=contexts)
+        st.session_state.messages.append({
+            "role": "assistant",
+            "content": full_answer,
+            "contexts": contexts,
+        })
 
         st.rerun()

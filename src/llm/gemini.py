@@ -1,12 +1,10 @@
 # src/llm/gemini.py
+from typing import Generator
 from src.llm.base import LLMClient, LLMResponse
 from src.config import load_gemini
 
 
 class GeminiLLMClient(LLMClient):
-    """
-    Gemini LLM client using google.generativeai.
-    """
 
     def __init__(self, model_name: str = "models/gemini-2.5-flash"):
         self.model_name = model_name
@@ -24,5 +22,14 @@ class GeminiLLMClient(LLMClient):
         return LLMResponse(
             text=text,
             model=self.model_name,
-            usage=None,  # Gemini usage metadata can be added later
+            usage=None,
         )
+
+    def stream(self, prompt: str) -> Generator[str, None, None]:
+        response = self.model.generate_content(prompt, stream=True)
+        for chunk in response:
+            try:
+                if chunk.text:
+                    yield chunk.text
+            except Exception:
+                pass
