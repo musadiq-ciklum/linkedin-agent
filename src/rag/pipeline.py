@@ -1,6 +1,6 @@
 # src/rag/pipeline.py
 import json
-from typing import Optional, List
+from typing import Optional, List, Generator, Tuple
 from src.llm.gemini import GeminiLLMClient
 from src.prompts.prompt_builder import PromptBuilder
 from src.rag.schema import RetrievedDoc
@@ -216,30 +216,103 @@ class RAGPipeline:
         )
     
     def _run_generate_only(self, query: str) -> str:
-        """
-        Handle generation-only requests (non-RAG).
-        """
-
-        # Social / announcement use case
         if "linkedin" in query.lower() or "post" in query.lower():
             return self.generate_social_post()
+        prompt = f"Answer the following request clearly and concisely:\n{query}"
+        return self.llm_client.generate(prompt).text.strip()
 
-        # Generic generation fallback
-        prompt = f"""
-        Answer the following request clearly and concisely:
-        {query}
+    # -----------------------------
+    # Streaming
+    # -----------------------------
+    def stream_with_context(
+        self,
+        query: str,
+        top_k: Optional[int] = None,
+        use_rerank: bool = True,
+    ) -> Tuple[List[dict], Generator[str, None, None]]:
         """
-
-        llm_response = self.llm_client.generate(prompt)
-        return llm_response.text.strip()
-
-    def generate_social_post(self) -> str:
+        Returns (contexts, token_stream).
+        Contexts are resolved synchronously; tokens stream from the LLM.
         """
-        Generate a LinkedIn-style project announcement post.
-        Output is ready to publish (5–7 sentences).
-        """
+        decision = self.agent.decide(query)
 
-        prompt = """
+        if decision == "confluence":
+            return self._stream_confluence(query)
+        if decision == "git":
+            return self._stream_git(query)
+        if decision == "generate":
+            return self._stream_generate_only(query)
+
+        return self._stream_core(query, top_k=top_k or self.top_k, use_rerank=use_rerank)
+
+    def _stream_core(
+        self, query: str, top_k: int, use_rerank: bool
+    ) -> Tuple[List[dict], Generator[str, None, None]]:
+        docs = self.retriever.search(query, top_k=top_k)
+        docs = self._normalize_docs(docs)
+
+        if not docs or docs[0].score < MIN_RELEVANCE_SCORE:
+            return [], iter(["I could not find this information in the knowledge base."])
+
+        if use_rerank and self.reranker:
+            docs = self.reranker.rerank(query, docs)
+
+        contexts = [{"doc_id": d.id, "score": d.score, "content": d.text} for d in docs]
+        top_doc = docs[0]
+
+        if len(docs) == 1 or top_doc.score >= EXTRACTIVE_SCORE_THRESHOLD:
+            return contexts, iter([top_doc.text])
+
+        prompt = self.prompt_builder.build(query, docs)
+        return contexts, self.llm_client.stream(prompt)
+
+    def _stream_confluence(self, query: str) -> Tuple[List[dict], Generator[str, None, None]]:
+        from src.mcp.client import call_tool
+        try:
+            raw = call_tool("search_confluence", {"query": query})
+            results = json.loads(raw)
+        except Exception as e:
+            return [], iter([f"Confluence is not available. Please check your credentials in .env."])
+
+        if not results:
+            return [], iter(["No Confluence results found for your query."])
+
+        docs = [RetrievedDoc(id=r["page_id"], text=r["text"], score=1.0) for r in results]
+        if self.reranker:
+            docs = self.reranker.rerank(query, docs)
+
+        contexts = [{"doc_id": r["page_id"], "score": 1.0, "content": r["text"]} for r in results]
+        prompt = self.prompt_builder.build(query, docs)
+        return contexts, self.llm_client.stream(prompt)
+
+    def _stream_git(self, query: str) -> Tuple[List[dict], Generator[str, None, None]]:
+        from src.mcp.client import call_tool
+        try:
+            raw = call_tool("search_git", {"query": query})
+            results = json.loads(raw)
+        except Exception as e:
+            return [], iter(["Git source is not available. Please check GIT_REPO_URL in .env."])
+
+        if not results:
+            return [], iter(["No Git repository results found for your query."])
+
+        docs = [RetrievedDoc(id=r["doc_id"], text=r["text"], score=1.0) for r in results]
+        if self.reranker:
+            docs = self.reranker.rerank(query, docs)
+
+        contexts = [{"doc_id": r["doc_id"], "score": 1.0, "content": r["text"]} for r in results]
+        prompt = self.prompt_builder.build(query, docs)
+        return contexts, self.llm_client.stream(prompt)
+
+    def _stream_generate_only(self, query: str) -> Tuple[List[dict], Generator[str, None, None]]:
+        if "linkedin" in query.lower() or "post" in query.lower():
+            prompt = self._social_post_prompt()
+        else:
+            prompt = f"Answer the following request clearly and concisely:\n{query}"
+        return [], self.llm_client.stream(prompt)
+
+    def _social_post_prompt(self) -> str:
+        return """
         Write a professional LinkedIn post announcing a project achievement.
 
         Requirements:
@@ -264,5 +337,6 @@ class RAGPipeline:
         Generate ONLY the final LinkedIn post text.
         """
 
-        llm_response = self.llm_client.generate(prompt)
+    def generate_social_post(self) -> str:
+        llm_response = self.llm_client.generate(self._social_post_prompt())
         return llm_response.text.strip()

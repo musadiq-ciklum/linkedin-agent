@@ -1,7 +1,7 @@
 # src/llm/base.py
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Optional, Dict
+from typing import Optional, Dict, Generator
 
 
 @dataclass
@@ -14,7 +14,8 @@ class LLMResponse:
 class LLMClient(ABC):
     @abstractmethod
     def generate(self, prompt: str) -> LLMResponse:
-        """
-        Generate a response from the LLM.
-        """
-        raise NotImplementedError
+        ...
+
+    @abstractmethod
+    def stream(self, prompt: str) -> Generator[str, None, None]:
+        ...
