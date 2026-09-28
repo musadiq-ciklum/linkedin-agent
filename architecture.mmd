@@ -1,96 +1,104 @@
 flowchart TB
     %% =========================
-    %% User Interfaces
+    %% Users
     %% =========================
-    UserCLI[CLI User]
+    UserBrowser[Browser User]
     UserAPI[API Client]
+    UserCLI[CLI User]
 
     %% =========================
     %% Entry Points
     %% =========================
-    CLI[rag_run.py]
-    API[FastAPI + Uvicorn]
+    StreamlitApp["Streamlit App\n(app.py)"]
+    API["FastAPI + Uvicorn\n(/ask · /ask/stream · /embedding · /upload)"]
+    CLI["rag_run.py"]
 
     %% =========================
-    %% Core Agent
+    %% Auth & Persistence
     %% =========================
-    Agent[RAG Agent Pipeline]
+    AuthService["Auth Service\n(bcrypt · itsdangerous)"]
+    SQLite[("SQLite\nUsers · Sessions · Messages")]
 
     %% =========================
-    %% Reasoning & Control
+    %% Pipeline & Routing
     %% =========================
-    Reasoning[LLM Reasoning]
-    Reflection[Self-Reflection]
-    Tooling[Tool Calling / Actions]
+    Pipeline["RAG Pipeline\n(run_with_context · stream_with_context)"]
+    Controller["AgentController\n(ROUTES table)"]
+
+    %% =========================
+    %% MCP Sources
+    %% =========================
+    MCPServer["MCP Server\n(FastMCP)"]
+    ConfluenceSource["Confluence Source\n(Atlassian REST API)"]
+    GitSource["Git Source\n(GitPython)"]
 
     %% =========================
     %% Retrieval Layer
     %% =========================
-    Retriever[Retriever]
-    Reranker[Optional Re-ranker]
-    VectorStore[Chroma Vector Store]
+    Retriever["Semantic Search Retriever"]
+    Reranker["CrossEncoder Reranker\n(ms-marco-MiniLM-L-6-v2)"]
+    VectorStore[("Chroma Vector Store")]
 
     %% =========================
     %% Models
     %% =========================
-    LLM[Gemini LLM]
-    Embedder[Embedding Model]
+    LLM["Gemini LLM\n(generate · stream)"]
+    Embedder["Sentence-Transformers\n(MiniLM)"]
 
     %% =========================
     %% Data Ingestion
     %% =========================
-    Upload[Document Upload]
-    Chunking[Text Cleaning & Chunking]
+    Upload["Document Upload\n(.txt · .pdf)"]
+    Chunking["Text Cleaning & Chunking"]
 
     %% =========================
     %% Evaluation (Offline)
     %% =========================
-    EvalScript[eval_rag.py]
-    EvalData[Evaluation Dataset JSON]
-    Metrics[Precision Recall RAG Quality Latency]
-    Reports[CSV Reports]
+    EvalScript["eval_rag.py"]
+    EvalData["Evaluation Dataset (JSON)"]
+    Metrics["Precision@K · Recall@K\nRAG Quality · Latency"]
+    Reports["CSV Reports"]
 
-    %% =========================
-    %% Flow: CLI & API
-    %% =========================
-    UserCLI --> CLI --> Agent
-    UserAPI --> API --> Agent
+    %% ── Entry flows ──────────────────────────
+    UserBrowser --> StreamlitApp
+    UserAPI --> API
+    UserCLI --> CLI
 
-    %% =========================
-    %% Agent Internal Flow
-    %% =========================
-    Agent --> Reasoning
-    Reasoning --> Retriever
-    Retriever --> VectorStore
-    VectorStore --> Retriever
-    Retriever --> Reranker
-    Reranker --> Reasoning
+    %% ── Auth & chat history ──────────────────
+    StreamlitApp --> AuthService --> SQLite
+    StreamlitApp --> SQLite
 
-    %% =========================
-    %% Tool & Reflection Loop
-    %% =========================
-    Reasoning --> Tooling
-    Tooling --> Reasoning
-    Reasoning --> Reflection
-    Reflection --> Reasoning
+    %% ── All interfaces call Pipeline directly ─
+    StreamlitApp --> Pipeline
+    API --> Pipeline
+    CLI --> Pipeline
 
-    %% =========================
-    %% Models Interaction
-    %% =========================
-    Reasoning --> LLM
+    %% ── Pipeline consults Controller ─────────
+    Pipeline --> Controller
+
+    %% ── Controller returns routing decision ──
+    %% ── Pipeline then calls the right handler ─
+    Controller -->|retrieve| Retriever
+    Controller -->|generate| LLM
+    Controller -->|confluence| MCPServer
+    Controller -->|git| MCPServer
+
+    %% ── MCP sources ──────────────────────────
+    MCPServer --> ConfluenceSource
+    MCPServer --> GitSource
+    MCPServer -->|results| LLM
+
+    %% ── Retrieve path ────────────────────────
+    Retriever --> VectorStore --> Retriever
+    Retriever --> Reranker --> LLM
     Retriever --> Embedder
 
-    %% =========================
-    %% Ingestion Flow
-    %% =========================
+    %% ── Data ingestion ───────────────────────
     Upload --> Chunking --> Embedder --> VectorStore
 
-    %% =========================
-    %% Evaluation Flow
-    %% =========================
+    %% ── Evaluation ───────────────────────────
     EvalData --> EvalScript
     EvalScript --> Retriever
     EvalScript --> Reranker
     EvalScript --> LLM
-    EvalScript --> Metrics
-    Metrics --> Reports
+    EvalScript --> Metrics --> Reports
