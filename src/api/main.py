@@ -1,5 +1,6 @@
 # src/api/main.py
 from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi.responses import StreamingResponse
 from src.api.schemas import AskRequest, AskResponse
 from src.rag.factory import create_rag_pipeline
 from src.embedder.factory import create_embedder
@@ -26,6 +27,15 @@ def ask(request: AskRequest):
         top_k=request.top_k,
         use_rerank=request.use_rerank,
     )
+
+@app.post("/ask/stream")
+def ask_stream(request: AskRequest):
+    _, token_stream = rag_pipeline.stream_with_context(
+        query=request.query,
+        top_k=request.top_k,
+        use_rerank=request.use_rerank,
+    )
+    return StreamingResponse(token_stream, media_type="text/plain")
 
 @app.post("/embedding", response_model=EmbeddingResponse)
 def embedding(req: EmbeddingRequest):

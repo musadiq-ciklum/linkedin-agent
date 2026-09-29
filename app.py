@@ -1,9 +1,11 @@
 # app.py
+import time
 import streamlit as st
 import streamlit.components.v1 as components
 from src.rag.factory import create_rag_pipeline
 from src.db.sqlite import is_db_ready
 from src.auth.service import login_user, register_user, verify_token, get_user_id_by_username
+from src.config import SESSION_MAX_AGE
 from src.chat.service import (
     get_or_create_session,
     create_new_session,
@@ -26,6 +28,16 @@ def format_context_label(doc_id: str, score: float) -> str:
 @st.cache_resource
 def get_pipeline():
     return create_rag_pipeline()
+
+
+def generate_session_title(first_message: str) -> str:
+    prompt = (
+        "Generate a short title (3 to 6 words) for a chat session that starts with this message. "
+        "Return ONLY the title, no punctuation, no quotes:\n\n"
+        f"{first_message}"
+    )
+    response = get_pipeline().llm_client.generate(prompt)
+    return response.text.strip()
 
 
 def _set_cookie_and_reload(name: str, value: str) -> None:
@@ -95,6 +107,14 @@ username = verify_token(token) if token else None
 if not username:
     _render_auth_screen()
 else:
+    now = time.time()
+    last_activity = st.session_state.get("last_activity")
+    if last_activity and (now - last_activity) > SESSION_MAX_AGE:
+        st.session_state.clear()
+        st.warning("Your session expired due to inactivity. Please log in again.")
+        st.stop()
+    st.session_state["last_activity"] = now
+
     st.session_state["auth_token"] = token
 
     if "user_id" not in st.session_state:
@@ -212,26 +232,26 @@ else:
     if prompt := st.chat_input("Ask a question..."):
         current_session_id = st.session_state["chat_session_id"]
 
+        if not st.session_state.messages:
+            title = generate_session_title(prompt)
+            rename_session(current_session_id, title)
+
         save_message(current_session_id, "user", prompt, contexts=[])
         st.session_state.messages.append({"role": "user", "content": prompt, "contexts": []})
         with st.chat_message("user"):
             st.markdown(prompt)
 
         pipeline = get_pipeline()
-        result = pipeline.run_with_context(prompt)
-        contexts = [
-            {"doc_id": c.doc_id, "score": c.score, "content": c.content}
-            for c in result.contexts
-        ]
-
-        save_message(current_session_id, "assistant", result.answer, contexts=contexts)
-        st.session_state.messages.append({
-            "role": "assistant",
-            "content": result.answer,
-            "contexts": contexts,
-        })
+        contexts, token_stream = pipeline.stream_with_context(prompt)
 
         with st.chat_message("assistant"):
-            st.markdown(result.answer)
+            full_answer = st.write_stream(token_stream)
+
+        save_message(current_session_id, "assistant", full_answer, contexts=contexts)
+        st.session_state.messages.append({
+            "role": "assistant",
+            "content": full_answer,
+            "contexts": contexts,
+        })
 
         st.rerun()

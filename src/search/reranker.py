@@ -1,7 +1,10 @@
 # src/search/reranker.py
 from typing import List, Tuple, Iterable
+from sentence_transformers import CrossEncoder
 from src.config import load_gemini
 from src.rag.schema import RetrievedDoc
+
+DEFAULT_CROSS_ENCODER_MODEL = "cross-encoder/ms-marco-MiniLM-L-6-v2"
 
 class BaseRanker:
     def rerank(self, query: str, docs: list[RetrievedDoc]) -> list[RetrievedDoc]:
@@ -47,4 +50,16 @@ class LocalSimpleRanker(BaseRanker):
             inter = qtok & dtok
             d.score = float(len(inter)) / (len(qtok) or 1.0)
 
+        return sorted(docs, key=lambda d: d.score, reverse=True)
+
+
+class CrossEncoderRanker(BaseRanker):
+    def __init__(self, model_name: str = DEFAULT_CROSS_ENCODER_MODEL):
+        self._model = CrossEncoder(model_name)
+
+    def rerank(self, query: str, docs: list[RetrievedDoc]) -> list[RetrievedDoc]:
+        pairs = [(query, d.text) for d in docs]
+        scores = self._model.predict(pairs)
+        for d, score in zip(docs, scores):
+            d.score = float(score)
         return sorted(docs, key=lambda d: d.score, reverse=True)
