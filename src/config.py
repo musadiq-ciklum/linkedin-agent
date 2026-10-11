@@ -29,6 +29,8 @@ GEMINI_MODEL_NAME = os.getenv(
     "models/gemini-2.5-flash"
 )
 
+LLM_PROVIDER = os.getenv("LLM_PROVIDER", "gemini")
+
 # Embeddings
 EMBEDDING_MODEL_NAME = os.getenv(
     "EMBEDDING_MODEL_NAME",

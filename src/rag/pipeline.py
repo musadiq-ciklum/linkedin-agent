@@ -1,7 +1,7 @@
 # src/rag/pipeline.py
 import json
 from typing import Optional, List, Generator, Tuple
-from src.llm.gemini import GeminiLLMClient
+from src.llm.base import LLMClient
 from src.prompts.prompt_builder import PromptBuilder
 from src.rag.schema import RetrievedDoc
 from src.search.reranker import BaseRanker
@@ -14,7 +14,7 @@ class RAGPipeline:
         self,
         retriever: "Retriever",
         reranker: Optional[BaseRanker],
-        llm_client: GeminiLLMClient,
+        llm_client: LLMClient,
         prompt_builder: PromptBuilder,
         top_k: int = DEFAULT_TOP_K,
     ):
