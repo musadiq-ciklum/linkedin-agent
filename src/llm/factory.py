@@ -7,8 +7,14 @@ def _make_gemini() -> LLMClient:
     return GeminiLLMClient()
 
 
+def _make_groq() -> LLMClient:
+    from src.llm.groq import GroqLLMClient
+    return GroqLLMClient()
+
+
 LLM_PROVIDER_REGISTRY: dict[str, callable] = {
     "gemini": _make_gemini,
+    "groq": _make_groq,
 }
 
 
