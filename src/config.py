@@ -30,6 +30,7 @@ GEMINI_MODEL_NAME = os.getenv(
 )
 
 LLM_PROVIDER = os.getenv("LLM_PROVIDER", "gemini")
+GROQ_MODEL_NAME = os.getenv("GROQ_MODEL_NAME", "qwen/qwen3.8-27b")
 
 # Embeddings
 EMBEDDING_MODEL_NAME = os.getenv(
@@ -99,3 +100,15 @@ def load_gemini(model_name: str | None = None):
     return genai.GenerativeModel(
         model_name or GEMINI_MODEL_NAME
     )
+
+
+# ============================================================
+# Groq Loader
+# ============================================================
+
+def load_groq(model_name: str | None = None):
+    from groq import Groq
+    api_key = os.getenv("GROQ_API_KEY")
+    if not api_key:
+        raise RuntimeError("Missing GROQ_API_KEY in .env file.")
+    return Groq(api_key=api_key), model_name or GROQ_MODEL_NAME
