@@ -4,6 +4,7 @@ from src.search.retriever_adapter import SemanticSearchRetriever
 from src.search.reranker import BaseRanker, CrossEncoderRanker
 from src.vectorstore.db_store import ChromaStore
 from src.llm.factory import create_llm_client
+from src.llm.router import LLMRouter
 from src.prompts.prompt_builder import PromptBuilder
 from src.config import CHROMA_DIR, LLM_PROVIDER
 
@@ -24,6 +25,7 @@ def create_rag_pipeline() -> RAGPipeline:
     # 4. LLM + prompt
     llm_client = create_llm_client(LLM_PROVIDER)
     prompt_builder = PromptBuilder()
+    router = LLMRouter()
 
     # 5. Pipeline
     return RAGPipeline(
@@ -31,4 +33,5 @@ def create_rag_pipeline() -> RAGPipeline:
         reranker=ranker,
         llm_client=llm_client,
         prompt_builder=prompt_builder,
+        router=router,
     )

@@ -50,6 +50,10 @@ EXTRACTIVE_SCORE_THRESHOLD = float(
     os.getenv("EXTRACTIVE_SCORE_THRESHOLD", 0.65)
 )
 
+ROUTER_LONG_QUERY_WORD_THRESHOLD = int(
+    os.getenv("ROUTER_LONG_QUERY_WORD_THRESHOLD", 100)
+)
+
 # ============================================================
 # Retrieval Defaults
 # ============================================================

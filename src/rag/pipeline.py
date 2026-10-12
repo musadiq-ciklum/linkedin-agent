@@ -2,6 +2,7 @@
 import json
 from typing import Optional, List, Generator, Tuple
 from src.llm.base import LLMClient
+from src.llm.factory import create_llm_client
 from src.prompts.prompt_builder import PromptBuilder
 from src.rag.schema import RetrievedDoc
 from src.search.reranker import BaseRanker
@@ -17,13 +18,20 @@ class RAGPipeline:
         llm_client: LLMClient,
         prompt_builder: PromptBuilder,
         top_k: int = DEFAULT_TOP_K,
+        router=None,
     ):
         self.retriever = retriever
         self.reranker = reranker
         self.llm_client = llm_client
         self.prompt_builder = prompt_builder
         self.top_k = top_k
+        self.router = router
         self.agent = AgentController()
+
+    def _get_llm_client(self, query: str, decision: str) -> LLMClient:
+        if self.router is None:
+            return self.llm_client
+        return create_llm_client(self.router.select(query, decision))
 
     def _normalize_docs(self, docs):
         normalized = []
@@ -68,7 +76,7 @@ class RAGPipeline:
         else:
             # Generative answer
             prompt = self.prompt_builder.build(query, docs)
-            llm_response = self.llm_client.generate(prompt)
+            llm_response = self._get_llm_client(query, "retrieve").generate(prompt)
             answer: str = llm_response.text
 
         return answer, docs
@@ -101,7 +109,7 @@ class RAGPipeline:
             docs = self.reranker.rerank(query, docs)
 
         prompt = self.prompt_builder.build(query, docs)
-        answer = self.llm_client.generate(prompt).text.strip()
+        answer = self._get_llm_client(query, "confluence").generate(prompt).text.strip()
 
         return AskResponse(
             answer=answer,
@@ -137,7 +145,7 @@ class RAGPipeline:
             docs = self.reranker.rerank(query, docs)
 
         prompt = self.prompt_builder.build(query, docs)
-        answer = self.llm_client.generate(prompt).text.strip()
+        answer = self._get_llm_client(query, "git").generate(prompt).text.strip()
 
         return AskResponse(
             answer=answer,
@@ -219,7 +227,7 @@ class RAGPipeline:
         if "linkedin" in query.lower() or "post" in query.lower():
             return self.generate_social_post()
         prompt = f"Answer the following request clearly and concisely:\n{query}"
-        return self.llm_client.generate(prompt).text.strip()
+        return self._get_llm_client(query, "generate").generate(prompt).text.strip()
 
     # -----------------------------
     # Streaming
@@ -264,7 +272,7 @@ class RAGPipeline:
             return contexts, iter([top_doc.text])
 
         prompt = self.prompt_builder.build(query, docs)
-        return contexts, self.llm_client.stream(prompt)
+        return contexts, self._get_llm_client(query, "retrieve").stream(prompt)
 
     def _stream_confluence(self, query: str) -> Tuple[List[dict], Generator[str, None, None]]:
         from src.mcp.client import call_tool
@@ -283,7 +291,7 @@ class RAGPipeline:
 
         contexts = [{"doc_id": r["page_id"], "score": 1.0, "content": r["text"]} for r in results]
         prompt = self.prompt_builder.build(query, docs)
-        return contexts, self.llm_client.stream(prompt)
+        return contexts, self._get_llm_client(query, "confluence").stream(prompt)
 
     def _stream_git(self, query: str) -> Tuple[List[dict], Generator[str, None, None]]:
         from src.mcp.client import call_tool
@@ -302,14 +310,14 @@ class RAGPipeline:
 
         contexts = [{"doc_id": r["doc_id"], "score": 1.0, "content": r["text"]} for r in results]
         prompt = self.prompt_builder.build(query, docs)
-        return contexts, self.llm_client.stream(prompt)
+        return contexts, self._get_llm_client(query, "git").stream(prompt)
 
     def _stream_generate_only(self, query: str) -> Tuple[List[dict], Generator[str, None, None]]:
         if "linkedin" in query.lower() or "post" in query.lower():
             prompt = self._social_post_prompt()
         else:
             prompt = f"Answer the following request clearly and concisely:\n{query}"
-        return [], self.llm_client.stream(prompt)
+        return [], self._get_llm_client(query, "generate").stream(prompt)
 
     def _social_post_prompt(self) -> str:
         return """
@@ -338,5 +346,5 @@ class RAGPipeline:
         """
 
     def generate_social_post(self) -> str:
-        llm_response = self.llm_client.generate(self._social_post_prompt())
+        llm_response = self._get_llm_client("", "generate").generate(self._social_post_prompt())
         return llm_response.text.strip()
