@@ -3,6 +3,7 @@ import time
 import streamlit as st
 import streamlit.components.v1 as components
 from src.rag.factory import create_rag_pipeline
+from src.llm.factory import get_available_providers
 from src.db.sqlite import is_db_ready
 from src.auth.service import login_user, register_user, verify_token, get_user_id_by_username
 from src.config import SESSION_MAX_AGE
@@ -141,6 +142,16 @@ else:
             st.session_state["messages"] = []
             st.rerun()
 
+        available_providers = get_available_providers()
+        provider_options = ["Auto"] + [p.capitalize() for p in available_providers]
+        if "llm_provider" not in st.session_state:
+            st.session_state["llm_provider"] = "Auto"
+        st.session_state["llm_provider"] = st.selectbox(
+            "Model",
+            options=provider_options,
+            index=provider_options.index(st.session_state["llm_provider"]),
+        )
+
         st.divider()
         st.subheader("Past Sessions")
         past_sessions = list_sessions(user_id)
@@ -241,11 +252,17 @@ else:
         with st.chat_message("user"):
             st.markdown(prompt)
 
+        provider_key = st.session_state.get("llm_provider", "Auto")
+        provider_override = None if provider_key == "Auto" else provider_key.lower()
+
         pipeline = get_pipeline()
-        contexts, token_stream = pipeline.stream_with_context(prompt)
+        contexts, token_stream, active_provider = pipeline.stream_with_context(
+            prompt, provider_override=provider_override
+        )
 
         with st.chat_message("assistant"):
             full_answer = st.write_stream(token_stream)
+            st.caption(f"Model: {active_provider}")
 
         save_message(current_session_id, "assistant", full_answer, contexts=contexts)
         st.session_state.messages.append({

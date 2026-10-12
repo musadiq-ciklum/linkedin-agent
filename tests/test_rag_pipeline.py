@@ -1,5 +1,6 @@
 # tests/test_rag_pipeline.py
 
+from unittest.mock import MagicMock, patch
 from src.llm.fake import FakeLLMClient
 from src.rag.pipeline import RAGPipeline
 from src.prompts.prompt_builder import PromptBuilder
@@ -41,7 +42,7 @@ def test_fake_llm_stream_yields_tokens():
 
 def test_stream_with_context_returns_contexts_and_full_answer():
     pipeline = _make_pipeline(answer="STREAMED ANSWER")
-    contexts, token_stream = pipeline.stream_with_context("test query")
+    contexts, token_stream, provider = pipeline.stream_with_context("test query")
     full_text = "".join(token_stream)
     assert "STREAMED" in full_text
     assert isinstance(contexts, list)
@@ -58,6 +59,30 @@ def test_stream_with_context_returns_empty_contexts_when_no_docs_match():
         llm_client=FakeLLMClient(),
         prompt_builder=PromptBuilder(),
     )
-    contexts, token_stream = pipeline.stream_with_context("anything")
+    contexts, token_stream, provider = pipeline.stream_with_context("anything")
     assert contexts == []
     assert "".join(token_stream) != ""
+
+
+def test_stream_with_context_uses_provider_override_when_set():
+    pipeline = _make_pipeline()
+    with patch("src.rag.pipeline.create_llm_client") as mock_factory:
+        mock_factory.return_value = FakeLLMClient()
+        _, _, provider = pipeline.stream_with_context("test", provider_override="groq")
+    assert provider == "groq"
+    mock_factory.assert_called_with("groq")
+
+
+def test_stream_with_context_returns_router_provider_when_auto():
+    fake_router = MagicMock()
+    fake_router.select.return_value = "gemini"
+    pipeline = RAGPipeline(
+        retriever=DummyRetriever(),
+        reranker=DummyReranker(),
+        llm_client=FakeLLMClient(),
+        prompt_builder=PromptBuilder(),
+        router=fake_router,
+    )
+    with patch("src.rag.pipeline.create_llm_client", return_value=FakeLLMClient()):
+        _, _, provider = pipeline.stream_with_context("test query")
+    assert provider == "gemini"

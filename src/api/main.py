@@ -30,7 +30,7 @@ def ask(request: AskRequest):
 
 @app.post("/ask/stream")
 def ask_stream(request: AskRequest):
-    _, token_stream = rag_pipeline.stream_with_context(
+    _, token_stream, _ = rag_pipeline.stream_with_context(
         query=request.query,
         top_k=request.top_k,
         use_rerank=request.use_rerank,
