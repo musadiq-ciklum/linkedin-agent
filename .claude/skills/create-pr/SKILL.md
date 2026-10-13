@@ -2,7 +2,7 @@
 name: create-pr
 description: Create a draft GitHub PR for the current branch — title taken from the first commit, body auto-generated from the issue and diff
 argument-hint: Optionally pass an issue number (e.g. 22) to override auto-detection
-allowed-tools: Bash(git status:*), Bash(git diff:*), Bash(git branch:*), Bash(git log:*), Bash(git push:*), Bash(gh pr:*), Bash(gh issue:*), Bash(gh auth:*), Bash(gh repo:*)
+allowed-tools: Bash(git status:*), Bash(git diff:*), Bash(git branch:*), Bash(git log:*), Bash(git fetch:*), Bash(git merge:*), Bash(git push:*), Bash(gh pr:*), Bash(gh issue:*), Bash(gh auth:*), Bash(gh repo:*), Bash(pytest:*)
 ---
 
 # Create Pull Request
@@ -15,7 +15,22 @@ Run `git branch --show-current`. If the branch is `main`, **stop immediately**:
 
 Only continue if the branch is not `main`.
 
-## Step 2 — Extract issue number and type
+## Step 2 — Merge main into current branch
+
+Fetch and merge the latest `main` to ensure the branch is up-to-date before opening the PR:
+
+```bash
+git fetch origin main
+git merge origin/main
+```
+
+If the merge produces conflicts, **stop immediately**:
+
+> Merge conflict detected. Resolve conflicts with `git mergetool` or manually, then re-run `/create-pr`.
+
+If the merge is already up-to-date, continue silently.
+
+## Step 3 — Extract issue number and type
 
 Parse the current branch name using this priority:
 1. Explicit argument passed to the skill (e.g. `22`)
@@ -23,7 +38,7 @@ Parse the current branch name using this priority:
 
 If no issue number can be detected, ask the user to provide one.
 
-## Step 3 — Get the PR title from the first commit
+## Step 4 — Get the PR title from the first commit
 
 Run:
 ```bash
@@ -36,7 +51,7 @@ Example: if the first commit is `feat(#22): add Streamlit chat GUI`, the PR titl
 
 If there are multiple commits, list them all so the user can see what will be in the PR. Do not concatenate them — only the first one becomes the PR title.
 
-## Step 4 — Fetch the GitHub issue title
+## Step 5 — Fetch the GitHub issue title
 
 Run:
 ```bash
@@ -45,9 +60,43 @@ gh issue view <issue-number> --json title,body --jq '{title: .title, body: .body
 
 Use the issue title to cross-check the PR title makes sense. If the issue cannot be found, warn the user but continue.
 
-## Step 5 — Build the PR body
+## Step 6 — Pre-check checklist boxes
 
-Generate the PR body with these sections:
+Run these checks now and record each result. Use the outcome to set `[x]` or `[ ]` in the PR body.
+
+**Tests passing:**
+```bash
+pytest -v --tb=no -q 2>&1 | tail -5
+```
+→ Tick `All tests pass locally` if exit code is 0.
+
+**Debug prints / commented-out code:**
+```bash
+git diff main...HEAD -- '*.py' | grep -E '^\+.*(print\(|#.*TODO|#.*FIXME|pdb\.set_trace|breakpoint\(\))' | grep -v '^\+\+\+'
+```
+→ Tick `No debug prints or commented-out code` if output is empty.
+
+**Conventional Commits format:**
+```bash
+git log main..HEAD --format="%s"
+```
+→ Tick `Commit messages follow Conventional Commits format` if every line matches `^(feat|fix|docs|test|refactor|chore|style|perf|ci|build|revert)(\(.*\))?!?: .+`.
+
+**Unit tests added or updated:**
+```bash
+git diff main...HEAD --name-only | grep -E '^tests/'
+```
+→ Tick `Unit tests added or updated` if any test file appears.
+
+**`CLAUDE.md` updated:**
+```bash
+git diff main...HEAD --name-only | grep 'CLAUDE.md'
+```
+→ Tick `CLAUDE.md updated if architecture changed` only if `CLAUDE.md` appears in the diff AND the PR touches architecture-level files (new modules, changed factories, new endpoints). Leave unchecked otherwise.
+
+## Step 7 — Build the PR body
+
+Use the check results from Step 6 to fill in `[x]` or `[ ]` for each item:
 
 ```markdown
 ## Summary
@@ -56,23 +105,25 @@ Closes #<issue-number>
 <2–3 sentences describing what the PR does and why, based on the diff and issue title>
 
 ## Commits
-<bullet list of all commits on this branch, in order — use `git log main..HEAD --oneline --reverse`>
+<bullet list of all commits on this branch, in order>
 
 ## Changes
 <file-by-file bullet list from `git diff main...HEAD --stat`>
 
 ## Testing
-- [ ] All tests pass locally (`pytest -v`)
+- [x/\ ] All tests pass locally (`pytest -v`)
 - [ ] Manually tested the feature end-to-end
-- [ ] No debug prints or commented-out code in staged files
+- [x/\ ] No debug prints or commented-out code in staged files
 
 ## Checklist
-- [ ] Commit messages follow Conventional Commits format
-- [ ] Unit tests added or updated for changed behaviour
-- [ ] `CLAUDE.md` updated if architecture changed
+- [x/\ ] Commit messages follow Conventional Commits format
+- [x/\ ] Unit tests added or updated for changed behaviour
+- [x/\ ] `CLAUDE.md` updated if architecture changed
 ```
 
-## Step 6 — Push the branch
+`Manually tested the feature end-to-end` is always left unchecked — only the user can confirm this.
+
+## Step 8 — Push the branch
 
 ```bash
 git push origin <current-branch>
@@ -80,20 +131,20 @@ git push origin <current-branch>
 
 If the branch is already up to date with remote, skip silently.
 
-## Step 7 — Create the draft PR
+## Step 9 — Create the draft PR
 
 ```bash
 gh pr create \
   --draft \
-  --title "<PR title from Step 3>" \
-  --body "<body from Step 5>" \
+  --title "<PR title from Step 4>" \
+  --body "<body from Step 7>" \
   --base main \
   --head <current-branch>
 ```
 
 Always create as **draft**. The user converts it to ready with `gh pr ready <number>` when done.
 
-## Step 8 — Confirm
+## Step 10 — Confirm
 
 Print the PR URL and title. Remind the user:
 > PR created as draft. Run `gh pr ready <number>` when it is ready for review.
@@ -103,4 +154,6 @@ Print the PR URL and title. Remind the user:
 - Always target `main` as the base branch
 - Always create as draft
 - Never push or create a PR from `main`
+- Always merge `origin/main` into the branch before pushing — stop if there are conflicts
 - `Closes #<issue-number>` must appear in the PR body so GitHub auto-links the issue
+- Pre-tick every checklist item that can be programmatically verified; leave `Manually tested` unchecked always
