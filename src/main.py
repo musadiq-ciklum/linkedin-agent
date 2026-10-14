@@ -1,4 +1,4 @@
-from config import load_gemini
+from src.llm.gemini import load_gemini
 
 def main():
     """

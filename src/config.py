@@ -8,7 +8,6 @@ values for reproducibility and demo clarity.
 
 import os
 from dotenv import load_dotenv
-import google.generativeai as genai
 
 # Load environment variables from .env
 load_dotenv()
@@ -86,33 +85,3 @@ GIT_LOCAL_PATH = os.getenv("GIT_LOCAL_PATH", "data/git_repos")
 GIT_TOKEN      = os.getenv("GIT_TOKEN", "")
 GIT_EXTENSIONS = os.getenv("GIT_EXTENSIONS", ".md,.txt,.rst,.py")
 
-# ============================================================
-# Gemini Loader
-# ============================================================
-
-def load_gemini(model_name: str | None = None):
-    """
-    Configures the Gemini API client and returns a model instance.
-    """
-    api_key = os.getenv("GEMINI_API_KEY")
-
-    if not api_key:
-        raise RuntimeError("Missing GEMINI_API_KEY in .env file.")
-
-    genai.configure(api_key=api_key)
-
-    return genai.GenerativeModel(
-        model_name or GEMINI_MODEL_NAME
-    )
-
-
-# ============================================================
-# Groq Loader
-# ============================================================
-
-def load_groq(model_name: str | None = None):
-    from groq import Groq
-    api_key = os.getenv("GROQ_API_KEY")
-    if not api_key:
-        raise RuntimeError("Missing GROQ_API_KEY in .env file.")
-    return Groq(api_key=api_key), model_name or GROQ_MODEL_NAME

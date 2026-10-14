@@ -1,7 +1,7 @@
 # src/search/reranker.py
 from typing import List, Tuple, Iterable
 from sentence_transformers import CrossEncoder
-from src.config import load_gemini
+from src.llm.gemini import load_gemini
 from src.rag.schema import RetrievedDoc
 
 DEFAULT_CROSS_ENCODER_MODEL = "cross-encoder/ms-marco-MiniLM-L-6-v2"
