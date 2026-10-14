@@ -1,6 +1,6 @@
 # src/rag/pipeline.py
 import json
-from typing import Optional, List, Generator, Tuple
+from typing import Generator
 from src.llm.base import LLMClient
 from src.llm.factory import create_llm_client
 from src.prompts.prompt_builder import PromptBuilder
@@ -14,7 +14,7 @@ class RAGPipeline:
     def __init__(
         self,
         retriever: "Retriever",
-        reranker: Optional[BaseRanker],
+        reranker: BaseRanker | None,
         llm_client: LLMClient,
         prompt_builder: PromptBuilder,
         top_k: int = DEFAULT_TOP_K,
@@ -158,7 +158,7 @@ class RAGPipeline:
             metadata={"agent_decision": "git"},
         )
 
-    def run(self, query: str, top_k: Optional[int] = None, use_rerank: bool = True) -> str:
+    def run(self, query: str, top_k: int | None = None, use_rerank: bool = True) -> str:
         decision = self.agent.decide(query)
 
         if decision == "confluence":
@@ -237,10 +237,10 @@ class RAGPipeline:
     def stream_with_context(
         self,
         query: str,
-        top_k: Optional[int] = None,
+        top_k: int | None = None,
         use_rerank: bool = True,
-        provider_override: Optional[str] = None,
-    ) -> Tuple[List[dict], Generator[str, None, None], str]:
+        provider_override: str | None = None,
+    ) -> tuple[list[dict], Generator[str, None, None], str]:
         """
         Returns (contexts, token_stream, provider_name).
         Contexts are resolved synchronously; tokens stream from the LLM.
@@ -267,8 +267,8 @@ class RAGPipeline:
         return contexts, stream, resolved or "default"
 
     def _stream_core(
-        self, query: str, top_k: int, use_rerank: bool, provider: Optional[str] = None
-    ) -> Tuple[List[dict], Generator[str, None, None]]:
+        self, query: str, top_k: int, use_rerank: bool, provider: str | None = None
+    ) -> tuple[list[dict], Generator[str, None, None]]:
         docs = self.retriever.search(query, top_k=top_k)
         docs = self._normalize_docs(docs)
 
@@ -287,7 +287,7 @@ class RAGPipeline:
         prompt = self.prompt_builder.build(query, docs)
         return contexts, self._get_llm_client(query, "retrieve", provider).stream(prompt)
 
-    def _stream_confluence(self, query: str, provider: Optional[str] = None) -> Tuple[List[dict], Generator[str, None, None]]:
+    def _stream_confluence(self, query: str, provider: str | None = None) -> tuple[list[dict], Generator[str, None, None]]:
         from src.mcp.client import call_tool
         try:
             raw = call_tool("search_confluence", {"query": query})
@@ -306,7 +306,7 @@ class RAGPipeline:
         prompt = self.prompt_builder.build(query, docs)
         return contexts, self._get_llm_client(query, "confluence", provider).stream(prompt)
 
-    def _stream_git(self, query: str, provider: Optional[str] = None) -> Tuple[List[dict], Generator[str, None, None]]:
+    def _stream_git(self, query: str, provider: str | None = None) -> tuple[list[dict], Generator[str, None, None]]:
         from src.mcp.client import call_tool
         try:
             raw = call_tool("search_git", {"query": query})
@@ -325,7 +325,7 @@ class RAGPipeline:
         prompt = self.prompt_builder.build(query, docs)
         return contexts, self._get_llm_client(query, "git", provider).stream(prompt)
 
-    def _stream_generate_only(self, query: str, provider: Optional[str] = None) -> Tuple[List[dict], Generator[str, None, None]]:
+    def _stream_generate_only(self, query: str, provider: str | None = None) -> tuple[list[dict], Generator[str, None, None]]:
         if "linkedin" in query.lower() or "post" in query.lower():
             prompt = self._social_post_prompt()
         else:
