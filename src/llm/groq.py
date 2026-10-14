@@ -1,7 +1,16 @@
 # src/llm/groq.py
+import os
 from typing import Generator
 from src.llm.base import LLMClient, LLMResponse
-from src.config import load_groq
+from src.config import GROQ_MODEL_NAME
+
+
+def load_groq(model_name: str | None = None):
+    from groq import Groq
+    api_key = os.getenv("GROQ_API_KEY")
+    if not api_key:
+        raise RuntimeError("Missing GROQ_API_KEY in .env file.")
+    return Groq(api_key=api_key), model_name or GROQ_MODEL_NAME
 
 
 class GroqLLMClient(LLMClient):
