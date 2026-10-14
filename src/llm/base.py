@@ -1,14 +1,13 @@
 # src/llm/base.py
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Optional, Dict, Generator
-
+from typing import Generator
 
 @dataclass
 class LLMResponse:
     text: str
     model: str
-    usage: Optional[Dict] = None
+    usage: dict | None = None
 
 
 class LLMClient(ABC):
