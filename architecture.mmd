@@ -40,9 +40,12 @@ flowchart TB
     VectorStore[("Chroma Vector Store")]
 
     %% =========================
-    %% Models
+    %% LLM Layer
     %% =========================
-    LLM["Gemini LLM\n(generate · stream)"]
+    LLMRouter["LLM Router\n(MCP → Gemini · long → Gemini · short → Groq)"]
+    LLMFactory["LLM Factory\n(create_llm_client)"]
+    Gemini["Gemini LLM\n(generate · stream)"]
+    Groq["Groq LLM\n(generate · stream)"]
     Embedder["Sentence-Transformers\n(MiniLM)"]
 
     %% =========================
@@ -79,18 +82,24 @@ flowchart TB
     %% ── Controller returns routing decision ──
     %% ── Pipeline then calls the right handler ─
     Controller -->|retrieve| Retriever
-    Controller -->|generate| LLM
+    Controller -->|generate| LLMRouter
     Controller -->|confluence| MCPServer
     Controller -->|git| MCPServer
+
+    %% ── LLM routing & factory ────────────────
+    Pipeline --> LLMRouter
+    LLMRouter --> LLMFactory
+    LLMFactory -->|gemini| Gemini
+    LLMFactory -->|groq| Groq
 
     %% ── MCP sources ──────────────────────────
     MCPServer --> ConfluenceSource
     MCPServer --> GitSource
-    MCPServer -->|results| LLM
+    MCPServer -->|results| LLMRouter
 
     %% ── Retrieve path ────────────────────────
     Retriever --> VectorStore --> Retriever
-    Retriever --> Reranker --> LLM
+    Retriever --> Reranker --> LLMRouter
     Retriever --> Embedder
 
     %% ── Data ingestion ───────────────────────
@@ -100,5 +109,5 @@ flowchart TB
     EvalData --> EvalScript
     EvalScript --> Retriever
     EvalScript --> Reranker
-    EvalScript --> LLM
+    EvalScript --> LLMRouter
     EvalScript --> Metrics --> Reports
