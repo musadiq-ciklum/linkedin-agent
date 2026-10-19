@@ -71,9 +71,20 @@ pip install -r requirements.txt
 ## 🔐 Configure Environment Variables
 Create a copy of `.env.example` and rename it to `.env`.
 
-**Set your Gemini key**
+**LLM Provider** (default: `gemini`)
 ```
-GEMINI_API_KEY=your_real_key_here
+LLM_PROVIDER=gemini
+```
+
+**Gemini** (required when `LLM_PROVIDER=gemini`)
+```
+GEMINI_API_KEY=your_gemini_api_key_here
+```
+
+**Groq** (optional — required when `LLM_PROVIDER=groq` or router selects it)
+```
+GROQ_API_KEY=your_groq_api_key_here
+GROQ_MODEL_NAME=qwen/qwen3.8-27b
 ```
 
 **Auth / Database** (required for the Streamlit app)
@@ -150,6 +161,7 @@ streamlit run app.py
 - **Persistent chat history** — every turn is saved to SQLite; previous sessions are listed in the sidebar and can be resumed, renamed, or deleted
 - **Auto-named sessions** — the LLM generates a short title from your first message
 - **Streaming responses** — tokens appear in real time as the LLM generates them
+- **Model selector** — sidebar dropdown to choose Gemini, Groq, or Auto (router decides); only providers with credentials configured appear
 - **Retrieved context** — source documents shown in collapsible sidebar expanders
 - **3-hour inactivity timeout** — sessions expire automatically after 3 hours of inactivity
 
@@ -198,7 +210,9 @@ This project is built using the following technologies and libraries:
 - **FastAPI** – API framework for exposing agent endpoints
 - **Uvicorn** – ASGI server for running the FastAPI application
 - **Streamlit** – Browser-based chat UI with auth, history, and streaming
-- **Google Gemini API** – Large Language Model used for reasoning and response generation
+- **Google Gemini API** – Primary LLM for reasoning, long-context, and MCP-backed queries
+- **Groq API** – Secondary LLM provider for fast, lightweight query responses
+- **LLM Router** – Rule-based router that selects Gemini or Groq per request based on query complexity and agent decision
 - **Sentence-Transformers (MiniLM)** – Embedding generation for semantic retrieval
 - **CrossEncoder (`ms-marco-MiniLM-L-6-v2`)** – Cross-encoder reranker for precise relevance scoring
 - **ChromaDB** – Vector database for storing and retrieving embeddings
@@ -268,7 +282,10 @@ All parameters are centralized in `src/config.py`.
 
 Key options:
 
-- `GEMINI_MODEL_NAME` – LLM model name (Gemini 2.5 Flash)
+- `LLM_PROVIDER` – Active LLM provider at startup (`gemini` or `groq`, default: `gemini`)
+- `GEMINI_MODEL_NAME` – Gemini model name (default: `models/gemini-2.5-flash`)
+- `GROQ_MODEL_NAME` – Groq model name (default: `qwen/qwen3.8-27b`)
+- `ROUTER_LONG_QUERY_WORD_THRESHOLD` – Word count above which the router sends queries to Gemini (default: `100`)
 - `EMBEDDING_MODEL_NAME` – Embedding model
 - `CHROMA_DIR` – Local vector store directory
 - `MIN_RELEVANCE_SCORE` – Threshold for document relevance
